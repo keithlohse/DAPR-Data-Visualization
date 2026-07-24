@@ -1,0 +1,331 @@
+---
+title: "Interactive Data Visualization"
+subtitle: "A Parallel Guide in R and Python"
+---
+
+# Introduction
+
+While static graphics are ideal for publication, **interactive visualizations** are essential for data exploration and quality assurance (QA). Interactive tooltips allow researchers to inspect individual outliers, verify data flags, and examine subject metadata without cluttering the plot canvas.
+
+In this module, we demonstrate how to build interactive figures:
+* **In R**, we use `ggiraph`, which extends `ggplot2` syntax by converting standard geoms into interactive HTML elements.
+* **In Python**, we use `plotly` (`plotly.express` and `plotly.graph_objects`), which creates web-ready JavaScript widgets from `pandas` DataFrames.
+
+---
+
+# Interactive Postural Sway Across Conditions
+
+In this first example, we make our multi-condition postural sway trajectories interactive. Hovering over any point displays subject metadata (Subject ID, Age, Gender, and Total Path Length), and hovering over an individual point highlights the subject's entire trajectory across conditions.
+
+::: {.panel-tabset}
+## R (`ggplot2` & `ggiraph`)
+
+```{r}
+#| label: script03-r-plot1
+#| fig-width: 9
+#| fig-height: 6
+
+library(tidyverse)
+library(ggiraph)
+
+# 1. Load Summary Data & Aggregate to Subject Averages
+DATA <- readRDS("./data/BDS/output/BDS_trial_summary.rds") %>% 
+  mutate(
+    Subject  = factor(Subject),
+    AgeGroup = fct_relevel(AgeGroup, "Young", "Old")
+  )
+
+AVE_DATA <- DATA %>% 
+  select(-Trial) %>%
+  group_by(Subject, Vision, Surface) %>%
+  summarise(
+    across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+    across(!where(is.numeric), dplyr::first),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Condition = factor(paste0(Surface, ":", Vision),
+                       levels = c("Firm:Open", "Firm:Closed", "Foam:Open", "Foam:Closed"))
+  )
+
+# 2. Build Tooltip Text
+AVE_DATA <- AVE_DATA %>%
+  mutate(tooltip_text = paste0(
+    "<b>Subject ID:</b> ", Subject, "<br>",
+    "<b>Age:</b> ", round(Age, 1), " years<br>",
+    "<b>Gender:</b> ", Gender, "<br>",
+    "<b>Sway (Path Length):</b> ", round(PathLength_Total, 1), " cm"
+  ))
+
+# 3. Define Colorblind Palette
+cbPalette <- c("#1E6654", "#CC5500", "#954535", "#5B7C99")
+
+# 4. Create Interactive ggplot
+p_sway <- ggplot(data = AVE_DATA, 
+                 aes(x = Condition, y = PathLength_Total,
+                     tooltip = tooltip_text, data_id = Subject)) +
+  geom_line(aes(group = Subject),
+            color = "gray75", alpha = 0.5, linewidth = 0.5,
+            position = position_dodge(width = 0.2)) +
+  geom_point_interactive(aes(shape = Condition, col = Condition, group = Subject), 
+                         size = 2.5, alpha = 0.7, position = position_dodge(width = 0.2),
+                         hover_nearest = TRUE) +
+  facet_wrap(~ AgeGroup) + 
+  scale_color_manual(values = cbPalette) + 
+  scale_fill_manual(values = cbPalette) +
+  theme_bw() +
+  labs(
+    title = "Postural Sway: Between- and Within-Subject Effects",
+    subtitle = "Hover points to inspect subject metadata; lines connect individual trajectories",
+    x = NULL,
+    y = "Total Path Length (cm)",
+    shape = "Condition", col = "Condition", fill = "Condition"
+  ) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 11, face = "italic", color = "gray30"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 10),
+    legend.position = "bottom",
+    strip.text = element_text(size = 11, face = "bold")
+  )
+
+# 5. Render Interactive girafe Widget
+girafe(
+  ggobj = p_sway,
+  options = list(
+    opts_hover(css = "fill:red;stroke:black;r:5pt;"),
+    opts_hover_inv(css = "opacity:0.2;"),
+    opts_tooltip(css = "background-color:black;color:white;padding:8px;border-radius:4px;font-family:sans-serif;")
+  )
+)
+```
+
+## Python (`plotly`)
+
+```{python}
+#| label: script03-py-plot1
+#| jupyter_compat: true
+#| fig-width: 9
+#| fig-height: 6
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+
+# 1. Load Summary Data & Aggregate to Subject Averages
+DATA = pd.read_csv("./data/BDS/output/BDS_trial_summary.csv")
+DATA["AgeGroup"] = pd.Categorical(DATA["AgeGroup"], categories=["Young", "Old"], ordered=True)
+
+meta_cols = ["Subject", "Vision", "Surface", "AgeGroup", "Gender"]
+AVE_DATA = DATA.groupby(meta_cols, as_index=False, observed=True).mean(numeric_only=True)
+AVE_DATA["Condition"] = AVE_DATA["Surface"].astype(str) + ":" + AVE_DATA["Vision"].astype(str)
+
+cond_order = ["Firm:Open", "Firm:Closed", "Foam:Open", "Foam:Closed"]
+cbPalette = ["#1E6654", "#CC5500", "#954535", "#5B7C99"]
+cond_colors = {cond: cbPalette[i] for i, cond in enumerate(cond_order)}
+
+# 2. Build Base Scatter Plot
+fig1 = px.scatter(
+    AVE_DATA,
+    x="Condition",
+    y="PathLength_Total",
+    color="Condition",
+    symbol="Condition",
+    facet_col="AgeGroup",
+    category_orders={"AgeGroup": ["Young", "Old"], "Condition": cond_order},
+    color_discrete_map=cond_colors,
+    custom_data=["Subject", "Age", "Gender", "PathLength_Total"],
+    labels={"PathLength_Total": "Total Path Length (cm)", "Condition": "Condition"},
+    title="<b>Postural Sway: Between- and Within-Subject Effects</b><br><sup>Hover points to inspect subject metadata; lines connect individual trajectories</sup>"
+)
+
+# 3. Add Within-Subject Trajectory Lines Across Subplots
+for i, age_grp in enumerate(["Young", "Old"], start=1):
+    sub_df = AVE_DATA[AVE_DATA["AgeGroup"] == age_grp]
+    for sub_id, grp in sub_df.groupby("Subject"):
+        grp_sorted = grp.set_index("Condition").reindex(cond_order).dropna().reset_index()
+        fig1.add_trace(
+            go.Scatter(
+                x=grp_sorted["Condition"],
+                y=grp_sorted["PathLength_Total"],
+                mode="lines",
+                line=dict(color="rgba(180, 180, 180, 0.5)", width=1),
+                showlegend=False,
+                hoverinfo="skip"
+            ),
+            row=1, col=i
+        )
+
+# Move trajectory lines behind scatter points
+n_conditions = len(cond_order)
+fig1.data = tuple(list(fig1.data[n_conditions:]) + list(fig1.data[:n_conditions]))
+
+# 4. Format Custom Hover Tooltip & Layout
+fig1.update_traces(
+    selector=dict(mode="markers"),
+    marker=dict(size=8, opacity=0.8),
+    hovertemplate=(
+        "<b>Subject ID:</b> %{customdata[0]}<br>"
+        "<b>Age:</b> %{customdata[1]:.1f} years<br>"
+        "<b>Gender:</b> %{customdata[2]}<br>"
+        "<b>Sway (Path Length):</b> %{customdata[3]:.1f} cm<extra></extra>"
+    )
+)
+
+fig1.update_layout(
+    template="plotly_white",
+    legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center"),
+    height=500
+)
+
+# Single final expression evaluated
+fig1
+```
+:::
+
+---
+
+# Interactive Quality Assurance (Force Plate Calibration & Unweighting)
+
+In this second example, we evaluate force plate calibration and screen for potential artifacts (such as a participant stepping off or unweighting the platform). 
+
+Under static gravity, vertical force $F_z$ should approximate body weight in Newtons:
+
+$$F_z \approx \text{Mass (kg)} \times 9.81 \text{ m/s}^2$$
+
+Hovering over flagged data points instantly reveals trial parameters, recorded body weight, and minimum vs. median $F_z$ values.
+
+::: {.panel-tabset}
+## R (`ggplot2` & `ggiraph`)
+
+```{r}
+#| label: script03-r-plot2
+#| fig-width: 9
+#| fig-height: 6
+
+# 1. Prepare Interactive Tooltips with Detailed QA Information
+QA_data <- DATA %>%
+  mutate(
+    QA_tooltip = paste0(
+      "<b>Subject:</b> ", Subject, " (", AgeGroup, ", ", Gender, ")<br>",
+      "<b>Trial:</b> ", Trial, "<br>",
+      "<b>Condition:</b> ", Surface, " - ", Vision, "<br>",
+      "<b>Recorded Weight:</b> ", Weight, " kg<br>",
+      "<b>Median Fz:</b> ", round(Fz_median, 1), " N<br>",
+      "<b>Min Fz:</b> ", round(Fz_min, 1), " N<br>",
+      "<b>Duration:</b> ", duration_s, "s (", n_samples, " samples)<br>",
+      "<b>Flagged?:</b> ", ifelse(flag_any, "⚠️ YES", "✅ No")
+    )
+  )
+
+# 2. Build Interactive Scatter Plot
+qa_plot <- ggplot(QA_data, aes(x = Weight, y = Fz_median, tooltip = QA_tooltip, data_id = Trial)) +
+  geom_abline(slope = 9.81, intercept = 0, linetype = "dashed", color = "gray50") +
+  geom_point_interactive(aes(color = flag_any), size = 2.5, alpha = 0.7) +
+  scale_color_manual(
+    values = c("FALSE" = "#1E6654", "TRUE" = "#CC5500"), 
+    labels = c("Clean", "Flagged"), 
+    name = "Data Status"
+  ) +
+  facet_wrap(~ AgeGroup) +
+  theme_bw() +
+  labs(
+    title = "QA: Force Plate Calibration & Unweighting Verification",
+    subtitle = "Dashed line represents theoretical gravity (Fz = Mass * 9.81). Hover points to inspect anomalies.",
+    x = "Recorded Weight (kg)",
+    y = "Median Vertical Force Fz (N)"
+  ) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 11, face = "italic", color = "gray30"),
+    axis.title = element_text(size = 12, face = "bold"),
+    legend.position = "bottom",
+    strip.text = element_text(size = 11, face = "bold")
+  )
+
+# 3. Render girafe Widget
+girafe(
+  ggobj = qa_plot,
+  options = list(
+    opts_hover(css = "fill:red;stroke:black;r:6pt;"),
+    opts_tooltip(css = "background-color:black;color:white;padding:10px;border-radius:5px;font-family:sans-serif;")
+  )
+)
+```
+
+## Python (`plotly`)
+
+```{python}
+#| label: script03-py-plot2
+#| jupyter_compat: true
+#| fig-width: 9
+#| fig-height: 6
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+
+# 1. Prepare QA Data Status Formatting
+QA_data = DATA.copy()
+QA_data["Status"] = np.where(QA_data["flag_any"], "Flagged", "Clean")
+QA_data["Flag_Symbol"] = np.where(QA_data["flag_any"], "⚠️ YES", "✅ No")
+
+# 2. Build Interactive Scatter Plot
+fig2 = px.scatter(
+    QA_data,
+    x="Weight",
+    y="Fz_median",
+    color="Status",
+    facet_col="AgeGroup",
+    category_orders={"AgeGroup": ["Young", "Old"], "Status": ["Clean", "Flagged"]},
+    color_discrete_map={"Clean": "#1E6654", "Flagged": "#CC5500"},
+    custom_data=[
+        "Subject", "AgeGroup", "Gender", "Trial", 
+        "Surface", "Vision", "Weight", "Fz_median", 
+        "Fz_min", "duration_s", "n_samples", "Flag_Symbol"
+    ],
+    labels={
+        "Weight": "Recorded Weight (kg)", 
+        "Fz_median": "Median Vertical Force Fz (N)",
+        "Status": "Data Status"
+    },
+    title="<b>QA: Force Plate Calibration & Unweighting Verification</b><br><sup>Dashed line represents theoretical gravity (Fz = Mass * 9.81). Hover points to inspect anomalies.</sup>"
+)
+
+# 3. Add Gravity Reference Lines (Assigned to _ so reticulate ignores it)
+for col_idx in [1, 2]:
+    _ = fig2.add_shape(
+        type="line",
+        x0=35, y0=35 * 9.81, x1=110, y1=110 * 9.81,
+        line=dict(color="gray", dash="dash"),
+        row=1, col=col_idx
+    )
+
+# 4. Format Hover Tooltip & Styling (Assigned to _ so reticulate ignores it)
+_ = fig2.update_traces(
+    marker=dict(size=8, opacity=0.7),
+    hovertemplate=(
+        "<b>Subject:</b> %{customdata[0]} (%{customdata[1]}, %{customdata[2]})<br>"
+        "<b>Trial:</b> %{customdata[3]}<br>"
+        "<b>Condition:</b> %{customdata[4]} - %{customdata[5]}<br>"
+        "<b>Recorded Weight:</b> %{customdata[6]:.1f} kg<br>"
+        "<b>Median Fz:</b> %{customdata[7]:.1f} N<br>"
+        "<b>Min Fz:</b> %{customdata[8]:.1f} N<br>"
+        "<b>Duration:</b> %{customdata[9]}s (%{customdata[10]} samples)<br>"
+        "<b>Flagged?:</b> %{customdata[11]}<extra></extra>"
+    )
+)
+
+_ = fig2.update_layout(
+    template="plotly_white",
+    legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center"),
+    height=500
+)
+
+# Render single figure
+fig2
+```
+:::

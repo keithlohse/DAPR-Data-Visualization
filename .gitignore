@@ -1,0 +1,27 @@
+# Data Files (Protect raw & intermediate dataset files)
+data/
+*.parquet
+*.csv
+*.rds
+*.xlsx
+
+# Quarto & R Caching
+.quarto/
+/_quarto/
+_freeze/
+
+# Local Environment & Machine Paths (DO NOT COMMIT)
+.Renviron
+.Rproj.user
+.Rhistory
+.RData
+
+# Python Caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Operating System Files
+.DS_Store
+Thumbs.db

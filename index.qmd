@@ -1,0 +1,17 @@
+---
+title: "DAPR Data Management and Visualization Pipeline"
+subtitle: "A Parallel Guide in R and Python"
+author: "Keith R. Lohse, PhD, PStat"
+date: "2026-07-22"
+---
+
+# Introduction & Setup
+
+This guidebook is intended to teach the fundamentals of data management and data visualization using R and Python. The guide was created and is maintained by the Data Science and Analytics for Precision Rehabilitation (DAPR) Center, funded by the Eunice Kennedy Shriver National Institute of Child Health and Human Development (P50-HD118603). The original code was written by KRL in R with a rough draft in Python, Google Gemini 3.6 was then used to troubleshoot Python code and bundle all scripts as a Quarto Notebook. Accuracy of all final code was confirmed and didactic comments added by KRL. 
+
+The guide walks through basic steps of data management - such importing data, merging files, and calculating variables - to data visualizaton for different purposed - from basic figures for quality assurance, to static figures to publication, to interactive and animated figures. 
+
+As our example data set, we will use the openly available Balance Data Set (BDS) from Santos & Duarte (2016). In this study, N=163 younger and older adults stood on a force plate under two different visual conditions (eyes open versus eyes closed) and on two different surfaces (a firm surface and a foam surface) for three trials in each condition (making 12 total trials per participant). Each trial lasted 60 seconds and force plate data were sampled at 100 Hz. This gives us an incredibly rich data set for learning how to manage and visualize data in the rehabilitation sciences (e.g., 163 people x 12 trials x 60 secs x 100 samples per second x 3 different force plate axes).   
+
+
+

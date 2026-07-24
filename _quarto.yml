@@ -1,0 +1,37 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "DAPR DataViz Guidebook"
+  navbar:
+    background: primary
+    search: true
+    left:
+      - text: "Overview"
+        file: index.qmd
+      - text: "1. Import & QA"
+        file: 01-import-qa.qmd
+      - text: "2. Static Plots"
+        file: 02-static-plots.qmd
+      - text: "3. Interactive Plots"
+        file: 03-interactive-plots.qmd
+      - text: "4. Animated Plots"
+        file: 04-animated-plots.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-summary: "Show Code"  # Optional: Custom text for the button
+    code-tools: true
+    self-contained-math: false # Avoid embedding MathJax everywhere if not needed
+
+execute:
+  freeze: true
+  echo: true
+  warning: false
+  message: false

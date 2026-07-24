@@ -1,0 +1,11 @@
+---
+title: "DAPR Data Management and Visualization Pipeline"
+subtitle: "A Parallel Guide in R and Python"
+
+---
+
+# Animated Plots
+
+Need to work on this...
+
+
