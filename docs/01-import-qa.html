@@ -216,7 +216,7 @@ window.Quarto = {
 
 <section id="import-and-merge-data" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Import and Merge Data</h1>
-<p>As mentioned above, we will be using the data from this study by Santos &amp; Duarte (2016): https://peerj.com/articles/2648/ . If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data.</p>
+<p>As mentioned before, we will be using the data from this study by Santos &amp; Duarte (2016): https://peerj.com/articles/2648/ . If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data.</p>
 <p>If you do download the data, please save it in this structure:</p>
 <pre class="text"><code>YOUR_FOLDER_HERE/               # Name of the project folder on your local computer
 └── data/                       # data subfolder
@@ -231,6 +231,13 @@ window.Quarto = {
         # we move it out of that folder to make some of our automated steps easier.
         
         </code></pre>
+<p><strong>Note that our data differ from the original Santos &amp; Duarte (2016) dataset.</strong> The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented below are for teaching purposes only and we explicitly do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.</p>
+<p>In the code chunks below, you can toggle between the <code>R</code> and <code>Python</code> implementations. We have tried to keep these code as similar as possible between the two languages, but it is important to remember that:</p>
+<ol type="1">
+<li><p>There is never only one way to things in programming, although some ways are better than others (and we try to show only “good” ways).</p></li>
+<li><p>Each programming language is different. So, even though we try to keep the code as structurally similar as possible, there often won’t be a one-to-one translation between languages.</p></li>
+</ol>
+<p>In the chunks below, we show the structure of the “raw” data after they have been merged into one master data files (rather than individual .csv files for every subject on every trial).</p>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">R (<code>tidyverse</code> &amp; <code>data.table</code>)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">Python (<code>pandas</code> &amp; <code>pyarrow</code>)</a></li></ul>
 <div class="tab-content">
@@ -376,11 +383,25 @@ memory usage: 1.5 GB</code></pre>
 </div>
 </div>
 </div>
+<p>The first few columns track <strong>structural</strong> information about how these data are organized:</p>
+<ul>
+<li><code>Trial</code> - the trial number which was used to index the original raw data files.</li>
+<li><code>Subject</code> - the unique subject identification number, each subject has ~4 trials and ~60s worth of data per trial.</li>
+<li><code>Vision</code> - was the trial completed with eyes open or eyes closed.</li>
+<li><code>Surface</code> - was the trial completed on a firm surface or a foam surface.</li>
+<li><code>Time</code> - time, in seconds, within each trial. Trials were, in general, 60s long.</li>
+</ul>
+<p>… and the last few columns are the key dependent variables tracked continuously throughout each trial:</p>
+<ul>
+<li><code>Fx</code>, <code>Fy</code>, and <code>Fz</code> - force in each plane of the force plate.</li>
+<li><code>Mx</code>, <code>My</code>, and <code>Mz</code> - moment arms corresponding to the forces in each plane.</li>
+<li><code>CoPx</code> and <code>CoPy</code> - the center of pressure as a point, in the x- and y-planes of force plate, calculated from the preceding forces and moment arms.</li>
+</ul>
 <hr>
 </section>
 <section id="quality-assurance-feature-extraction" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Quality Assurance &amp; Feature Extraction</h1>
-<p>From raw Center of Pressure (COP) time-series data <span class="math inline">\((COP_x, COP_y)\)</span>, we extract key biomechanical features:</p>
+<p>From raw Center of Pressure (COP) time-series data <span class="math inline">\((COP_x, COP_y)\)</span>, we will calculate key biomechanical variables that a researcher might be interested in:</p>
 <ol type="1">
 <li><p><strong>Path Lengths</strong>: Sum of absolute step distances across axes: <span class="math display">\[\text{PathLength}_{\text{AP}} = \sum_{n=1}^{N-1} |COP_{y, n+1} - COP_{y, n}|\]</span> <span class="math display">\[\text{PathLength}_{\text{Total}} = \sum_{n=1}^{N-1} \sqrt{(COP_{x, n+1} - COP_{x, n})^2 + (COP_{y, n+1} - COP_{y, n})^2}\]</span></p></li>
 <li><p><strong>95% Confidence Ellipse Area &amp; Boundary</strong>: <span class="math display">\[\text{Area}_{95} = 2 \pi F_{0.95, 2, N-2} \sqrt{\lambda_1 \lambda_2}\]</span> where <span class="math inline">\(\lambda_1, \lambda_2\)</span> are eigenvalues of the <span class="math inline">\((COP_x, COP_y)\)</span> covariance matrix.</p></li>
@@ -1220,7 +1241,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu"># Import and Merge Data</span></span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>As mentioned above, we will be using the data from this study by Santos &amp; Duarte (2016): </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>As mentioned before, we will be using the data from this study by Santos &amp; Duarte (2016): </span>
 <span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>https://peerj.com/articles/2648/ . If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data. </span>
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>If you do download the data, please save it in this structure:</span>
@@ -1240,434 +1261,473 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="in">        </span></span>
 <span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="in">        </span></span>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>**Note that our data differ from the original Santos &amp; Duarte (2016) dataset.** The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented below are for teaching purposes only and we explicitly do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.</span>
 <span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>::: panel-tabset</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="fu">## R (`tidyverse` &amp; `data.table`)</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>In the code chunks below, you can toggle between the <span class="in">`R`</span> and <span class="in">`Python`</span> implementations. We have tried to keep these code as similar as possible between the two languages, but it is important to remember that:</span>
 <span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script00-r</span></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reticulate)</span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="fu">use_condaenv</span>(<span class="st">"r-reticulate"</span>, <span class="at">required =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Read metadata</span></span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>info_path <span class="ot">&lt;-</span> <span class="st">"./data/BDS/BDSinfo.txt"</span></span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>info_raw  <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(info_path, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>info <span class="ot">&lt;-</span> info_raw <span class="sc">%&gt;%</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI) <span class="sc">%&gt;%</span></span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">Subject  =</span> <span class="fu">as.integer</span>(Subject),</span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">Vision   =</span> <span class="fu">factor</span>(Vision, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Open"</span>, <span class="st">"Closed"</span>)),</span>
-<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">Surface  =</span> <span class="fu">factor</span>(Surface, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Firm"</span>, <span class="st">"Foam"</span>)),</span>
-<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">AgeGroup =</span> <span class="fu">factor</span>(AgeGroup),</span>
-<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">Gender   =</span> <span class="fu">factor</span>(Gender)</span>
-<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Batch-read raw trial files</span></span>
-<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>trial_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">"./data/BDS/trials"</span>, <span class="at">pattern =</span> <span class="st">"^BDS</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">.txt$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>trial_ids   <span class="ot">&lt;-</span> tools<span class="sc">::</span><span class="fu">file_path_sans_ext</span>(<span class="fu">basename</span>(trial_files))</span>
-<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>read_one_trial <span class="ot">&lt;-</span> <span class="cf">function</span>(path, trial_id) {</span>
-<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fread</span>(path, <span class="at">header =</span> <span class="cn">TRUE</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">showProgress =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename_with</span>(<span class="sc">~</span> <span class="fu">str_trim</span>(<span class="fu">str_remove</span>(.x, <span class="st">"</span><span class="sc">\\</span><span class="st">[.*</span><span class="sc">\\</span><span class="st">]"</span>))) <span class="sc">%&gt;%</span></span>
-<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Trial =</span> trial_id, <span class="at">.before =</span> <span class="dv">1</span>)</span>
-<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a>trial_list <span class="ot">&lt;-</span> <span class="fu">map2</span>(trial_files, trial_ids, read_one_trial)</span>
-<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a>all_trials <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(trial_list)</span>
-<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Merge &amp; Save</span></span>
-<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a>master <span class="ot">&lt;-</span> all_trials <span class="sc">%&gt;%</span></span>
-<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(info, <span class="at">by =</span> <span class="st">"Trial"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI, <span class="at">.before =</span> Time)</span>
-<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">"./data/BDS/output"</span>, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(master, <span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
-<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(master)</span>
-<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a><span class="fu">## Python (`pandas` &amp; `pyarrow`)</span></span>
-<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-87"><a href="#cb10-87" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb10-88"><a href="#cb10-88" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script00-python</span></span>
-<span id="cb10-89"><a href="#cb10-89" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
-<span id="cb10-90"><a href="#cb10-90" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb10-91"><a href="#cb10-91" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb10-92"><a href="#cb10-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-93"><a href="#cb10-93" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Read metadata</span></span>
-<span id="cb10-94"><a href="#cb10-94" aria-hidden="true" tabindex="-1"></a>info_raw <span class="op">=</span> pd.read_csv(<span class="st">"./data/BDS/BDSinfo.txt"</span>, sep<span class="op">=</span><span class="st">"</span><span class="ch">\t</span><span class="st">"</span>)</span>
-<span id="cb10-95"><a href="#cb10-95" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Age"</span>, <span class="st">"AgeGroup"</span>, <span class="st">"Gender"</span>, <span class="st">"Height"</span>, <span class="st">"Weight"</span>, <span class="st">"BMI"</span>]</span>
-<span id="cb10-96"><a href="#cb10-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-97"><a href="#cb10-97" aria-hidden="true" tabindex="-1"></a>info <span class="op">=</span> info_raw[cols].copy()</span>
-<span id="cb10-98"><a href="#cb10-98" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Subject"</span>] <span class="op">=</span> info[<span class="st">"Subject"</span>].astype(<span class="bu">int</span>)</span>
-<span id="cb10-99"><a href="#cb10-99" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Vision"</span>]  <span class="op">=</span> pd.Categorical(info[<span class="st">"Vision"</span>], categories<span class="op">=</span>[<span class="st">"Open"</span>, <span class="st">"Closed"</span>])</span>
-<span id="cb10-100"><a href="#cb10-100" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Surface"</span>] <span class="op">=</span> pd.Categorical(info[<span class="st">"Surface"</span>], categories<span class="op">=</span>[<span class="st">"Firm"</span>, <span class="st">"Foam"</span>])</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>There is never only one way to things in programming, although some ways are better than others (and we try to show only "good" ways).</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Each programming language is different. So, even though we try to keep the code as structurally similar as possible, there often won't be a one-to-one translation between languages. </span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>In the chunks below, we show the structure of the "raw" data after they have been merged into one master data files (rather than individual .csv files for every subject on every trial). </span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>::: panel-tabset</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="fu">## R (`tidyverse` &amp; `data.table`)</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script00-r</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reticulate)</span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="fu">use_condaenv</span>(<span class="st">"r-reticulate"</span>, <span class="at">required =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Read metadata</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>info_path <span class="ot">&lt;-</span> <span class="st">"./data/BDS/BDSinfo.txt"</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>info_raw  <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(info_path, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>info <span class="ot">&lt;-</span> info_raw <span class="sc">%&gt;%</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI) <span class="sc">%&gt;%</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">Subject  =</span> <span class="fu">as.integer</span>(Subject),</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">Vision   =</span> <span class="fu">factor</span>(Vision, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Open"</span>, <span class="st">"Closed"</span>)),</span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">Surface  =</span> <span class="fu">factor</span>(Surface, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Firm"</span>, <span class="st">"Foam"</span>)),</span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">AgeGroup =</span> <span class="fu">factor</span>(AgeGroup),</span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>    <span class="at">Gender   =</span> <span class="fu">factor</span>(Gender)</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Batch-read raw trial files</span></span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a>trial_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">"./data/BDS/trials"</span>, <span class="at">pattern =</span> <span class="st">"^BDS</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">.txt$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a>trial_ids   <span class="ot">&lt;-</span> tools<span class="sc">::</span><span class="fu">file_path_sans_ext</span>(<span class="fu">basename</span>(trial_files))</span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>read_one_trial <span class="ot">&lt;-</span> <span class="cf">function</span>(path, trial_id) {</span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fread</span>(path, <span class="at">header =</span> <span class="cn">TRUE</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">showProgress =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename_with</span>(<span class="sc">~</span> <span class="fu">str_trim</span>(<span class="fu">str_remove</span>(.x, <span class="st">"</span><span class="sc">\\</span><span class="st">[.*</span><span class="sc">\\</span><span class="st">]"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Trial =</span> trial_id, <span class="at">.before =</span> <span class="dv">1</span>)</span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a>trial_list <span class="ot">&lt;-</span> <span class="fu">map2</span>(trial_files, trial_ids, read_one_trial)</span>
+<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a>all_trials <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(trial_list)</span>
+<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Merge &amp; Save</span></span>
+<span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a>master <span class="ot">&lt;-</span> all_trials <span class="sc">%&gt;%</span></span>
+<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(info, <span class="at">by =</span> <span class="st">"Trial"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-85"><a href="#cb10-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI, <span class="at">.before =</span> Time)</span>
+<span id="cb10-86"><a href="#cb10-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-87"><a href="#cb10-87" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">"./data/BDS/output"</span>, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-88"><a href="#cb10-88" aria-hidden="true" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(master, <span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
+<span id="cb10-89"><a href="#cb10-89" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(master)</span>
+<span id="cb10-90"><a href="#cb10-90" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-91"><a href="#cb10-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-92"><a href="#cb10-92" aria-hidden="true" tabindex="-1"></a><span class="fu">## Python (`pandas` &amp; `pyarrow`)</span></span>
+<span id="cb10-93"><a href="#cb10-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-96"><a href="#cb10-96" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb10-97"><a href="#cb10-97" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script00-python</span></span>
+<span id="cb10-98"><a href="#cb10-98" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
+<span id="cb10-99"><a href="#cb10-99" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb10-100"><a href="#cb10-100" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb10-101"><a href="#cb10-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-102"><a href="#cb10-102" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Batch-read raw trial files</span></span>
-<span id="cb10-103"><a href="#cb10-103" aria-hidden="true" tabindex="-1"></a>trial_files <span class="op">=</span> <span class="bu">sorted</span>(glob.glob(<span class="st">"./data/BDS/trials/BDS*.txt"</span>))</span>
-<span id="cb10-104"><a href="#cb10-104" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-105"><a href="#cb10-105" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_one_trial(path):</span>
-<span id="cb10-106"><a href="#cb10-106" aria-hidden="true" tabindex="-1"></a>    trial_id <span class="op">=</span> os.path.splitext(os.path.basename(path))[<span class="dv">0</span>]</span>
-<span id="cb10-107"><a href="#cb10-107" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.read_csv(path, sep<span class="op">=</span><span class="st">"</span><span class="ch">\t</span><span class="st">"</span>)</span>
-<span id="cb10-108"><a href="#cb10-108" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Clean headers (strip units like [cm], [N])</span></span>
-<span id="cb10-109"><a href="#cb10-109" aria-hidden="true" tabindex="-1"></a>    df.columns <span class="op">=</span> df.columns.<span class="bu">str</span>.replace(<span class="vs">r"\[.*\]"</span>, <span class="st">""</span>, regex<span class="op">=</span><span class="va">True</span>).<span class="bu">str</span>.strip()</span>
-<span id="cb10-110"><a href="#cb10-110" aria-hidden="true" tabindex="-1"></a>    df.insert(<span class="dv">0</span>, <span class="st">"Trial"</span>, trial_id)</span>
-<span id="cb10-111"><a href="#cb10-111" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
-<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-113"><a href="#cb10-113" aria-hidden="true" tabindex="-1"></a>trial_list <span class="op">=</span> [read_one_trial(f) <span class="cf">for</span> f <span class="kw">in</span> trial_files]</span>
-<span id="cb10-114"><a href="#cb10-114" aria-hidden="true" tabindex="-1"></a>all_trials <span class="op">=</span> pd.concat(trial_list, ignore_index<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-115"><a href="#cb10-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-116"><a href="#cb10-116" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Merge &amp; Save</span></span>
-<span id="cb10-117"><a href="#cb10-117" aria-hidden="true" tabindex="-1"></a>master <span class="op">=</span> pd.merge(all_trials, info, on<span class="op">=</span><span class="st">"Trial"</span>, how<span class="op">=</span><span class="st">"left"</span>)</span>
-<span id="cb10-118"><a href="#cb10-118" aria-hidden="true" tabindex="-1"></a>os.makedirs(<span class="st">"./data/BDS/output"</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-119"><a href="#cb10-119" aria-hidden="true" tabindex="-1"></a>master.to_parquet(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
-<span id="cb10-120"><a href="#cb10-120" aria-hidden="true" tabindex="-1"></a>master.info()</span>
-<span id="cb10-121"><a href="#cb10-121" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-122"><a href="#cb10-122" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb10-123"><a href="#cb10-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-124"><a href="#cb10-124" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------</span>
-<span id="cb10-125"><a href="#cb10-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-126"><a href="#cb10-126" aria-hidden="true" tabindex="-1"></a><span class="fu"># Quality Assurance &amp; Feature Extraction</span></span>
-<span id="cb10-127"><a href="#cb10-127" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-128"><a href="#cb10-128" aria-hidden="true" tabindex="-1"></a>From raw Center of Pressure (COP) time-series data $(COP_x, COP_y)$, we extract key biomechanical features:</span>
-<span id="cb10-129"><a href="#cb10-129" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-130"><a href="#cb10-130" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Path Lengths**: Sum of absolute step distances across axes:</span>
-<span id="cb10-131"><a href="#cb10-131" aria-hidden="true" tabindex="-1"></a>   $$\text{PathLength}_{\text{AP}} = \sum_{n=1}^{N-1} |COP_{y, n+1} - COP_{y, n}|$$</span>
-<span id="cb10-132"><a href="#cb10-132" aria-hidden="true" tabindex="-1"></a>   $$\text{PathLength}_{\text{Total}} = \sum_{n=1}^{N-1} \sqrt{(COP_{x, n+1} - COP_{x, n})^2 + (COP_{y, n+1} - COP_{y, n})^2}$$</span>
-<span id="cb10-133"><a href="#cb10-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-134"><a href="#cb10-134" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**95% Confidence Ellipse Area &amp; Boundary**:</span>
-<span id="cb10-135"><a href="#cb10-135" aria-hidden="true" tabindex="-1"></a>   $$\text{Area}_{95} = 2 \pi F_{0.95, 2, N-2} \sqrt{\lambda_1 \lambda_2}$$</span>
-<span id="cb10-136"><a href="#cb10-136" aria-hidden="true" tabindex="-1"></a>   where $\lambda_1, \lambda_2$ are eigenvalues of the $(COP_x, COP_y)$ covariance matrix.</span>
-<span id="cb10-137"><a href="#cb10-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-138"><a href="#cb10-138" aria-hidden="true" tabindex="-1"></a>::: {.panel-tabset}</span>
-<span id="cb10-139"><a href="#cb10-139" aria-hidden="true" tabindex="-1"></a><span class="fu">## R (`tidyverse` &amp; `patchwork`)</span></span>
-<span id="cb10-140"><a href="#cb10-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-143"><a href="#cb10-143" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb10-144"><a href="#cb10-144" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script01-r</span></span>
-<span id="cb10-145"><a href="#cb10-145" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
-<span id="cb10-146"><a href="#cb10-146" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 8</span></span>
+<span id="cb10-102"><a href="#cb10-102" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Read metadata</span></span>
+<span id="cb10-103"><a href="#cb10-103" aria-hidden="true" tabindex="-1"></a>info_raw <span class="op">=</span> pd.read_csv(<span class="st">"./data/BDS/BDSinfo.txt"</span>, sep<span class="op">=</span><span class="st">"</span><span class="ch">\t</span><span class="st">"</span>)</span>
+<span id="cb10-104"><a href="#cb10-104" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Age"</span>, <span class="st">"AgeGroup"</span>, <span class="st">"Gender"</span>, <span class="st">"Height"</span>, <span class="st">"Weight"</span>, <span class="st">"BMI"</span>]</span>
+<span id="cb10-105"><a href="#cb10-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-106"><a href="#cb10-106" aria-hidden="true" tabindex="-1"></a>info <span class="op">=</span> info_raw[cols].copy()</span>
+<span id="cb10-107"><a href="#cb10-107" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Subject"</span>] <span class="op">=</span> info[<span class="st">"Subject"</span>].astype(<span class="bu">int</span>)</span>
+<span id="cb10-108"><a href="#cb10-108" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Vision"</span>]  <span class="op">=</span> pd.Categorical(info[<span class="st">"Vision"</span>], categories<span class="op">=</span>[<span class="st">"Open"</span>, <span class="st">"Closed"</span>])</span>
+<span id="cb10-109"><a href="#cb10-109" aria-hidden="true" tabindex="-1"></a>info[<span class="st">"Surface"</span>] <span class="op">=</span> pd.Categorical(info[<span class="st">"Surface"</span>], categories<span class="op">=</span>[<span class="st">"Firm"</span>, <span class="st">"Foam"</span>])</span>
+<span id="cb10-110"><a href="#cb10-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-111"><a href="#cb10-111" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Batch-read raw trial files</span></span>
+<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a>trial_files <span class="op">=</span> <span class="bu">sorted</span>(glob.glob(<span class="st">"./data/BDS/trials/BDS*.txt"</span>))</span>
+<span id="cb10-113"><a href="#cb10-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-114"><a href="#cb10-114" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_one_trial(path):</span>
+<span id="cb10-115"><a href="#cb10-115" aria-hidden="true" tabindex="-1"></a>    trial_id <span class="op">=</span> os.path.splitext(os.path.basename(path))[<span class="dv">0</span>]</span>
+<span id="cb10-116"><a href="#cb10-116" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.read_csv(path, sep<span class="op">=</span><span class="st">"</span><span class="ch">\t</span><span class="st">"</span>)</span>
+<span id="cb10-117"><a href="#cb10-117" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Clean headers (strip units like [cm], [N])</span></span>
+<span id="cb10-118"><a href="#cb10-118" aria-hidden="true" tabindex="-1"></a>    df.columns <span class="op">=</span> df.columns.<span class="bu">str</span>.replace(<span class="vs">r"\[.*\]"</span>, <span class="st">""</span>, regex<span class="op">=</span><span class="va">True</span>).<span class="bu">str</span>.strip()</span>
+<span id="cb10-119"><a href="#cb10-119" aria-hidden="true" tabindex="-1"></a>    df.insert(<span class="dv">0</span>, <span class="st">"Trial"</span>, trial_id)</span>
+<span id="cb10-120"><a href="#cb10-120" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span>
+<span id="cb10-121"><a href="#cb10-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-122"><a href="#cb10-122" aria-hidden="true" tabindex="-1"></a>trial_list <span class="op">=</span> [read_one_trial(f) <span class="cf">for</span> f <span class="kw">in</span> trial_files]</span>
+<span id="cb10-123"><a href="#cb10-123" aria-hidden="true" tabindex="-1"></a>all_trials <span class="op">=</span> pd.concat(trial_list, ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-124"><a href="#cb10-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-125"><a href="#cb10-125" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Merge &amp; Save</span></span>
+<span id="cb10-126"><a href="#cb10-126" aria-hidden="true" tabindex="-1"></a>master <span class="op">=</span> pd.merge(all_trials, info, on<span class="op">=</span><span class="st">"Trial"</span>, how<span class="op">=</span><span class="st">"left"</span>)</span>
+<span id="cb10-127"><a href="#cb10-127" aria-hidden="true" tabindex="-1"></a>os.makedirs(<span class="st">"./data/BDS/output"</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-128"><a href="#cb10-128" aria-hidden="true" tabindex="-1"></a>master.to_parquet(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
+<span id="cb10-129"><a href="#cb10-129" aria-hidden="true" tabindex="-1"></a>master.info()</span>
+<span id="cb10-130"><a href="#cb10-130" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-131"><a href="#cb10-131" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb10-132"><a href="#cb10-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-133"><a href="#cb10-133" aria-hidden="true" tabindex="-1"></a>The first few columns track **structural** information about how these data are </span>
+<span id="cb10-134"><a href="#cb10-134" aria-hidden="true" tabindex="-1"></a>organized:</span>
+<span id="cb10-135"><a href="#cb10-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-136"><a href="#cb10-136" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Trial`</span> - the trial number which was used to index the original raw data files.</span>
+<span id="cb10-137"><a href="#cb10-137" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Subject`</span> - the unique subject identification number, each subject has ~4 trials and ~60s worth of data per trial.</span>
+<span id="cb10-138"><a href="#cb10-138" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Vision`</span> - was the trial completed with eyes open or eyes closed.</span>
+<span id="cb10-139"><a href="#cb10-139" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Surface`</span> - was the trial completed on a firm surface or a foam surface.</span>
+<span id="cb10-140"><a href="#cb10-140" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Time`</span> - time, in seconds, within each trial. Trials were, in general, 60s long.     </span>
+<span id="cb10-141"><a href="#cb10-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-142"><a href="#cb10-142" aria-hidden="true" tabindex="-1"></a>... and the last few columns are the key dependent variables tracked continuously throughout each trial:</span>
+<span id="cb10-143"><a href="#cb10-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-144"><a href="#cb10-144" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Fx`</span>, <span class="in">`Fy`</span>, and <span class="in">`Fz`</span> - force in each plane of the force plate. </span>
+<span id="cb10-145"><a href="#cb10-145" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`Mx`</span>, <span class="in">`My`</span>, and <span class="in">`Mz`</span> - moment arms corresponding to the forces in each plane.</span>
+<span id="cb10-146"><a href="#cb10-146" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span><span class="in">`CoPx`</span> and <span class="in">`CoPy`</span> - the center of pressure as a point, in the x- and y-planes of force plate, calculated from the preceding forces and moment arms. </span>
 <span id="cb10-147"><a href="#cb10-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-148"><a href="#cb10-148" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb10-149"><a href="#cb10-149" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
-<span id="cb10-150"><a href="#cb10-150" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb10-148"><a href="#cb10-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-149"><a href="#cb10-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-150"><a href="#cb10-150" aria-hidden="true" tabindex="-1"></a>------------------------------------------------------------------------</span>
 <span id="cb10-151"><a href="#cb10-151" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-152"><a href="#cb10-152" aria-hidden="true" tabindex="-1"></a>master <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
+<span id="cb10-152"><a href="#cb10-152" aria-hidden="true" tabindex="-1"></a><span class="fu"># Quality Assurance &amp; Feature Extraction</span></span>
 <span id="cb10-153"><a href="#cb10-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-154"><a href="#cb10-154" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Feature Extraction &amp; Ellipse Math</span></span>
-<span id="cb10-155"><a href="#cb10-155" aria-hidden="true" tabindex="-1"></a>compute_path_metrics <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, duration_s) {</span>
-<span id="cb10-156"><a href="#cb10-156" aria-hidden="true" tabindex="-1"></a>  dx <span class="ot">&lt;-</span> <span class="fu">diff</span>(x)</span>
-<span id="cb10-157"><a href="#cb10-157" aria-hidden="true" tabindex="-1"></a>  dy <span class="ot">&lt;-</span> <span class="fu">diff</span>(y)</span>
-<span id="cb10-158"><a href="#cb10-158" aria-hidden="true" tabindex="-1"></a>  pl_ml    <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">abs</span>(dx))</span>
-<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a>  pl_ap    <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">abs</span>(dy))</span>
-<span id="cb10-160"><a href="#cb10-160" aria-hidden="true" tabindex="-1"></a>  pl_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">sqrt</span>(dx<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> dy<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb10-161"><a href="#cb10-161" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
-<span id="cb10-163"><a href="#cb10-163" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_AP    =</span> pl_ap,</span>
-<span id="cb10-164"><a href="#cb10-164" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_ML    =</span> pl_ml,</span>
-<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_Total =</span> pl_total,</span>
-<span id="cb10-166"><a href="#cb10-166" aria-hidden="true" tabindex="-1"></a>    <span class="at">MeanVelocity_AP  =</span> pl_ap <span class="sc">/</span> duration_s,</span>
-<span id="cb10-167"><a href="#cb10-167" aria-hidden="true" tabindex="-1"></a>    <span class="at">MeanVelocity_ML  =</span> pl_ml <span class="sc">/</span> duration_s</span>
-<span id="cb10-168"><a href="#cb10-168" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb10-169"><a href="#cb10-169" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-170"><a href="#cb10-170" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-171"><a href="#cb10-171" aria-hidden="true" tabindex="-1"></a>compute_ellipse95 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) {</span>
-<span id="cb10-172"><a href="#cb10-172" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
-<span id="cb10-173"><a href="#cb10-173" aria-hidden="true" tabindex="-1"></a>  cov_mat <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">cov</span>(<span class="fu">cbind</span>(x, y))</span>
-<span id="cb10-174"><a href="#cb10-174" aria-hidden="true" tabindex="-1"></a>  eig <span class="ot">&lt;-</span> <span class="fu">eigen</span>(cov_mat)</span>
-<span id="cb10-175"><a href="#cb10-175" aria-hidden="true" tabindex="-1"></a>  Fval <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">qf</span>(<span class="fl">0.95</span>, <span class="at">df1 =</span> <span class="dv">2</span>, <span class="at">df2 =</span> n <span class="sc">-</span> <span class="dv">2</span>)</span>
-<span id="cb10-176"><a href="#cb10-176" aria-hidden="true" tabindex="-1"></a>  area <span class="ot">&lt;-</span> <span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> Fval <span class="sc">*</span> <span class="fu">sqrt</span>(eig<span class="sc">$</span>values[<span class="dv">1</span>] <span class="sc">*</span> eig<span class="sc">$</span>values[<span class="dv">2</span>])</span>
-<span id="cb10-177"><a href="#cb10-177" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-178"><a href="#cb10-178" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">area =</span> area, <span class="at">eig =</span> eig, <span class="at">Fval =</span> Fval, <span class="at">center =</span> <span class="fu">c</span>(<span class="fu">mean</span>(x), <span class="fu">mean</span>(y)))</span>
-<span id="cb10-179"><a href="#cb10-179" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-180"><a href="#cb10-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-181"><a href="#cb10-181" aria-hidden="true" tabindex="-1"></a>ellipse_boundary_df <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, <span class="at">n_points =</span> <span class="dv">100</span>) {</span>
-<span id="cb10-182"><a href="#cb10-182" aria-hidden="true" tabindex="-1"></a>  e <span class="ot">&lt;-</span> <span class="fu">compute_ellipse95</span>(x, y)</span>
-<span id="cb10-183"><a href="#cb10-183" aria-hidden="true" tabindex="-1"></a>  axis_lengths <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="dv">2</span> <span class="sc">*</span> e<span class="sc">$</span>Fval <span class="sc">*</span> e<span class="sc">$</span>eig<span class="sc">$</span>values)</span>
-<span id="cb10-184"><a href="#cb10-184" aria-hidden="true" tabindex="-1"></a>  theta  <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span> <span class="sc">*</span> pi, <span class="at">length.out =</span> n_points)</span>
-<span id="cb10-185"><a href="#cb10-185" aria-hidden="true" tabindex="-1"></a>  circle <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">cos</span>(theta), <span class="fu">sin</span>(theta))</span>
-<span id="cb10-186"><a href="#cb10-186" aria-hidden="true" tabindex="-1"></a>  pts <span class="ot">&lt;-</span> e<span class="sc">$</span>eig<span class="sc">$</span>vectors <span class="sc">%*%</span> <span class="fu">diag</span>(axis_lengths) <span class="sc">%*%</span> circle</span>
+<span id="cb10-154"><a href="#cb10-154" aria-hidden="true" tabindex="-1"></a>From raw Center of Pressure (COP) time-series data $(COP_x, COP_y)$, we will calculate key biomechanical variables that a researcher might be interested in:</span>
+<span id="cb10-155"><a href="#cb10-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-156"><a href="#cb10-156" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Path Lengths**: Sum of absolute step distances across axes:</span>
+<span id="cb10-157"><a href="#cb10-157" aria-hidden="true" tabindex="-1"></a>   $$\text{PathLength}_{\text{AP}} = \sum_{n=1}^{N-1} |COP_{y, n+1} - COP_{y, n}|$$</span>
+<span id="cb10-158"><a href="#cb10-158" aria-hidden="true" tabindex="-1"></a>   $$\text{PathLength}_{\text{Total}} = \sum_{n=1}^{N-1} \sqrt{(COP_{x, n+1} - COP_{x, n})^2 + (COP_{y, n+1} - COP_{y, n})^2}$$</span>
+<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-160"><a href="#cb10-160" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**95% Confidence Ellipse Area &amp; Boundary**:</span>
+<span id="cb10-161"><a href="#cb10-161" aria-hidden="true" tabindex="-1"></a>   $$\text{Area}_{95} = 2 \pi F_{0.95, 2, N-2} \sqrt{\lambda_1 \lambda_2}$$</span>
+<span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a>   where $\lambda_1, \lambda_2$ are eigenvalues of the $(COP_x, COP_y)$ covariance matrix.</span>
+<span id="cb10-163"><a href="#cb10-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-164"><a href="#cb10-164" aria-hidden="true" tabindex="-1"></a>::: {.panel-tabset}</span>
+<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a><span class="fu">## R (`tidyverse` &amp; `patchwork`)</span></span>
+<span id="cb10-166"><a href="#cb10-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-169"><a href="#cb10-169" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb10-170"><a href="#cb10-170" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script01-r</span></span>
+<span id="cb10-171"><a href="#cb10-171" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb10-172"><a href="#cb10-172" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 8</span></span>
+<span id="cb10-173"><a href="#cb10-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-174"><a href="#cb10-174" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb10-175"><a href="#cb10-175" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(arrow)</span>
+<span id="cb10-176"><a href="#cb10-176" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb10-177"><a href="#cb10-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-178"><a href="#cb10-178" aria-hidden="true" tabindex="-1"></a>master <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
+<span id="cb10-179"><a href="#cb10-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-180"><a href="#cb10-180" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Feature Extraction &amp; Ellipse Math</span></span>
+<span id="cb10-181"><a href="#cb10-181" aria-hidden="true" tabindex="-1"></a>compute_path_metrics <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, duration_s) {</span>
+<span id="cb10-182"><a href="#cb10-182" aria-hidden="true" tabindex="-1"></a>  dx <span class="ot">&lt;-</span> <span class="fu">diff</span>(x)</span>
+<span id="cb10-183"><a href="#cb10-183" aria-hidden="true" tabindex="-1"></a>  dy <span class="ot">&lt;-</span> <span class="fu">diff</span>(y)</span>
+<span id="cb10-184"><a href="#cb10-184" aria-hidden="true" tabindex="-1"></a>  pl_ml    <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">abs</span>(dx))</span>
+<span id="cb10-185"><a href="#cb10-185" aria-hidden="true" tabindex="-1"></a>  pl_ap    <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">abs</span>(dy))</span>
+<span id="cb10-186"><a href="#cb10-186" aria-hidden="true" tabindex="-1"></a>  pl_total <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">sqrt</span>(dx<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> dy<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb10-187"><a href="#cb10-187" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-188"><a href="#cb10-188" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">ex =</span> e<span class="sc">$</span>center[<span class="dv">1</span>] <span class="sc">+</span> pts[<span class="dv">1</span>, ], <span class="at">ey =</span> e<span class="sc">$</span>center[<span class="dv">2</span>] <span class="sc">+</span> pts[<span class="dv">2</span>, ])</span>
-<span id="cb10-189"><a href="#cb10-189" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-190"><a href="#cb10-190" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-191"><a href="#cb10-191" aria-hidden="true" tabindex="-1"></a>compute_trial_features <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
-<span id="cb10-192"><a href="#cb10-192" aria-hidden="true" tabindex="-1"></a>  n        <span class="ot">&lt;-</span> <span class="fu">nrow</span>(df)</span>
-<span id="cb10-193"><a href="#cb10-193" aria-hidden="true" tabindex="-1"></a>  duration <span class="ot">&lt;-</span> <span class="fu">max</span>(df<span class="sc">$</span>Time) <span class="sc">-</span> <span class="fu">min</span>(df<span class="sc">$</span>Time)</span>
-<span id="cb10-194"><a href="#cb10-194" aria-hidden="true" tabindex="-1"></a>  path_m   <span class="ot">&lt;-</span> <span class="fu">compute_path_metrics</span>(df<span class="sc">$</span>COPx, df<span class="sc">$</span>COPy, duration)</span>
-<span id="cb10-195"><a href="#cb10-195" aria-hidden="true" tabindex="-1"></a>  ellipse  <span class="ot">&lt;-</span> <span class="fu">compute_ellipse95</span>(df<span class="sc">$</span>COPx, df<span class="sc">$</span>COPy)</span>
-<span id="cb10-196"><a href="#cb10-196" aria-hidden="true" tabindex="-1"></a>  time_d   <span class="ot">&lt;-</span> <span class="fu">diff</span>(df<span class="sc">$</span>Time)</span>
-<span id="cb10-197"><a href="#cb10-197" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-198"><a href="#cb10-198" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(</span>
-<span id="cb10-199"><a href="#cb10-199" aria-hidden="true" tabindex="-1"></a>    path_m,</span>
-<span id="cb10-200"><a href="#cb10-200" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(</span>
-<span id="cb10-201"><a href="#cb10-201" aria-hidden="true" tabindex="-1"></a>      <span class="at">EllipseArea95     =</span> ellipse<span class="sc">$</span>area,</span>
-<span id="cb10-202"><a href="#cb10-202" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_samples         =</span> n,</span>
-<span id="cb10-203"><a href="#cb10-203" aria-hidden="true" tabindex="-1"></a>      <span class="at">duration_s        =</span> duration,</span>
-<span id="cb10-204"><a href="#cb10-204" aria-hidden="true" tabindex="-1"></a>      <span class="at">Fz_min            =</span> <span class="fu">min</span>(df<span class="sc">$</span>Fz),</span>
-<span id="cb10-205"><a href="#cb10-205" aria-hidden="true" tabindex="-1"></a>      <span class="at">Fz_median         =</span> <span class="fu">median</span>(df<span class="sc">$</span>Fz),</span>
-<span id="cb10-206"><a href="#cb10-206" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_gap_max      =</span> <span class="fu">max</span>(time_d),</span>
-<span id="cb10-207"><a href="#cb10-207" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_nonmonotonic =</span> <span class="fu">any</span>(time_d <span class="sc">&lt;=</span> <span class="dv">0</span>)</span>
-<span id="cb10-208"><a href="#cb10-208" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb10-209"><a href="#cb10-209" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb10-210"><a href="#cb10-210" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-211"><a href="#cb10-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-212"><a href="#cb10-212" aria-hidden="true" tabindex="-1"></a><span class="co"># Process trial summary</span></span>
-<span id="cb10-213"><a href="#cb10-213" aria-hidden="true" tabindex="-1"></a>trial_features <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
-<span id="cb10-214"><a href="#cb10-214" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI) <span class="sc">%&gt;%</span></span>
-<span id="cb10-215"><a href="#cb10-215" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">compute_trial_features</span>(.x)) <span class="sc">%&gt;%</span></span>
-<span id="cb10-216"><a href="#cb10-216" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb10-217"><a href="#cb10-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-218"><a href="#cb10-218" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Structural &amp; Signal QA Checks</span></span>
-<span id="cb10-219"><a href="#cb10-219" aria-hidden="true" tabindex="-1"></a>modal_n     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(trial_features<span class="sc">$</span>n_samples), <span class="at">decreasing =</span> <span class="cn">TRUE</span>))[<span class="dv">1</span>])</span>
-<span id="cb10-220"><a href="#cb10-220" aria-hidden="true" tabindex="-1"></a>expected_dt <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
-<span id="cb10-221"><a href="#cb10-221" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-222"><a href="#cb10-222" aria-hidden="true" tabindex="-1"></a>trial_features <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span></span>
-<span id="cb10-223"><a href="#cb10-223" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-224"><a href="#cb10-224" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_sample_count   =</span> <span class="fu">abs</span>(n_samples <span class="sc">-</span> modal_n) <span class="sc">&gt;</span> <span class="dv">10</span>,</span>
-<span id="cb10-225"><a href="#cb10-225" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_time_gap       =</span> time_gap_max <span class="sc">&gt;</span> (expected_dt <span class="sc">*</span> <span class="dv">2</span>) <span class="sc">|</span> time_nonmonotonic,</span>
-<span id="cb10-226"><a href="#cb10-226" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_fz_unweighting =</span> Fz_min <span class="sc">&lt;</span> (<span class="fl">0.7</span> <span class="sc">*</span> Fz_median),</span>
-<span id="cb10-227"><a href="#cb10-227" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_any            =</span> flag_sample_count <span class="sc">|</span> flag_time_gap <span class="sc">|</span> flag_fz_unweighting</span>
-<span id="cb10-228"><a href="#cb10-228" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb10-229"><a href="#cb10-229" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-230"><a href="#cb10-230" aria-hidden="true" tabindex="-1"></a><span class="co"># Save QA Logs &amp; Summaries</span></span>
-<span id="cb10-231"><a href="#cb10-231" aria-hidden="true" tabindex="-1"></a>qa_log <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span> <span class="fu">filter</span>(flag_any)</span>
-<span id="cb10-232"><a href="#cb10-232" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(qa_log, <span class="st">"./data/BDS/output/qa_log.csv"</span>)</span>
-<span id="cb10-233"><a href="#cb10-233" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(trial_features, <span class="st">"./data/BDS/output/BDS_trial_summary.rds"</span>)</span>
-<span id="cb10-234"><a href="#cb10-234" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(trial_features, <span class="st">"./data/BDS/output/BDS_trial_summary.csv"</span>)</span>
-<span id="cb10-235"><a href="#cb10-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-236"><a href="#cb10-236" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Overview Outlier-Screening Figure</span></span>
-<span id="cb10-237"><a href="#cb10-237" aria-hidden="true" tabindex="-1"></a>overview_data <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span></span>
-<span id="cb10-238"><a href="#cb10-238" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Subject, Vision, Surface, PathLength_Total, MeanVelocity_AP, MeanVelocity_ML, EllipseArea95) <span class="sc">%&gt;%</span></span>
-<span id="cb10-239"><a href="#cb10-239" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(PathLength_Total, MeanVelocity_AP, MeanVelocity_ML, EllipseArea95),</span>
-<span id="cb10-240"><a href="#cb10-240" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Measure"</span>, <span class="at">values_to =</span> <span class="st">"Value"</span>)</span>
-<span id="cb10-241"><a href="#cb10-241" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-242"><a href="#cb10-242" aria-hidden="true" tabindex="-1"></a>p_overview <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(overview_data, <span class="fu">aes</span>(<span class="at">x =</span> Surface, <span class="at">y =</span> Value, <span class="at">fill =</span> Vision)) <span class="sc">+</span></span>
-<span id="cb10-243"><a href="#cb10-243" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">outlier.alpha =</span> <span class="fl">0.5</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.8</span>)) <span class="sc">+</span></span>
-<span id="cb10-244"><a href="#cb10-244" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Measure, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb10-245"><a href="#cb10-245" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
-<span id="cb10-246"><a href="#cb10-246" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Trial-level DV Distributions (Quality Assurance Overview)"</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span>
+<span id="cb10-188"><a href="#cb10-188" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb10-189"><a href="#cb10-189" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_AP    =</span> pl_ap,</span>
+<span id="cb10-190"><a href="#cb10-190" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_ML    =</span> pl_ml,</span>
+<span id="cb10-191"><a href="#cb10-191" aria-hidden="true" tabindex="-1"></a>    <span class="at">PathLength_Total =</span> pl_total,</span>
+<span id="cb10-192"><a href="#cb10-192" aria-hidden="true" tabindex="-1"></a>    <span class="at">MeanVelocity_AP  =</span> pl_ap <span class="sc">/</span> duration_s,</span>
+<span id="cb10-193"><a href="#cb10-193" aria-hidden="true" tabindex="-1"></a>    <span class="at">MeanVelocity_ML  =</span> pl_ml <span class="sc">/</span> duration_s</span>
+<span id="cb10-194"><a href="#cb10-194" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-195"><a href="#cb10-195" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-196"><a href="#cb10-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-197"><a href="#cb10-197" aria-hidden="true" tabindex="-1"></a>compute_ellipse95 <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) {</span>
+<span id="cb10-198"><a href="#cb10-198" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(x)</span>
+<span id="cb10-199"><a href="#cb10-199" aria-hidden="true" tabindex="-1"></a>  cov_mat <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">cov</span>(<span class="fu">cbind</span>(x, y))</span>
+<span id="cb10-200"><a href="#cb10-200" aria-hidden="true" tabindex="-1"></a>  eig <span class="ot">&lt;-</span> <span class="fu">eigen</span>(cov_mat)</span>
+<span id="cb10-201"><a href="#cb10-201" aria-hidden="true" tabindex="-1"></a>  Fval <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">qf</span>(<span class="fl">0.95</span>, <span class="at">df1 =</span> <span class="dv">2</span>, <span class="at">df2 =</span> n <span class="sc">-</span> <span class="dv">2</span>)</span>
+<span id="cb10-202"><a href="#cb10-202" aria-hidden="true" tabindex="-1"></a>  area <span class="ot">&lt;-</span> <span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> Fval <span class="sc">*</span> <span class="fu">sqrt</span>(eig<span class="sc">$</span>values[<span class="dv">1</span>] <span class="sc">*</span> eig<span class="sc">$</span>values[<span class="dv">2</span>])</span>
+<span id="cb10-203"><a href="#cb10-203" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-204"><a href="#cb10-204" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">area =</span> area, <span class="at">eig =</span> eig, <span class="at">Fval =</span> Fval, <span class="at">center =</span> <span class="fu">c</span>(<span class="fu">mean</span>(x), <span class="fu">mean</span>(y)))</span>
+<span id="cb10-205"><a href="#cb10-205" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-206"><a href="#cb10-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-207"><a href="#cb10-207" aria-hidden="true" tabindex="-1"></a>ellipse_boundary_df <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, <span class="at">n_points =</span> <span class="dv">100</span>) {</span>
+<span id="cb10-208"><a href="#cb10-208" aria-hidden="true" tabindex="-1"></a>  e <span class="ot">&lt;-</span> <span class="fu">compute_ellipse95</span>(x, y)</span>
+<span id="cb10-209"><a href="#cb10-209" aria-hidden="true" tabindex="-1"></a>  axis_lengths <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="dv">2</span> <span class="sc">*</span> e<span class="sc">$</span>Fval <span class="sc">*</span> e<span class="sc">$</span>eig<span class="sc">$</span>values)</span>
+<span id="cb10-210"><a href="#cb10-210" aria-hidden="true" tabindex="-1"></a>  theta  <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span> <span class="sc">*</span> pi, <span class="at">length.out =</span> n_points)</span>
+<span id="cb10-211"><a href="#cb10-211" aria-hidden="true" tabindex="-1"></a>  circle <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">cos</span>(theta), <span class="fu">sin</span>(theta))</span>
+<span id="cb10-212"><a href="#cb10-212" aria-hidden="true" tabindex="-1"></a>  pts <span class="ot">&lt;-</span> e<span class="sc">$</span>eig<span class="sc">$</span>vectors <span class="sc">%*%</span> <span class="fu">diag</span>(axis_lengths) <span class="sc">%*%</span> circle</span>
+<span id="cb10-213"><a href="#cb10-213" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-214"><a href="#cb10-214" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">ex =</span> e<span class="sc">$</span>center[<span class="dv">1</span>] <span class="sc">+</span> pts[<span class="dv">1</span>, ], <span class="at">ey =</span> e<span class="sc">$</span>center[<span class="dv">2</span>] <span class="sc">+</span> pts[<span class="dv">2</span>, ])</span>
+<span id="cb10-215"><a href="#cb10-215" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-216"><a href="#cb10-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-217"><a href="#cb10-217" aria-hidden="true" tabindex="-1"></a>compute_trial_features <span class="ot">&lt;-</span> <span class="cf">function</span>(df) {</span>
+<span id="cb10-218"><a href="#cb10-218" aria-hidden="true" tabindex="-1"></a>  n        <span class="ot">&lt;-</span> <span class="fu">nrow</span>(df)</span>
+<span id="cb10-219"><a href="#cb10-219" aria-hidden="true" tabindex="-1"></a>  duration <span class="ot">&lt;-</span> <span class="fu">max</span>(df<span class="sc">$</span>Time) <span class="sc">-</span> <span class="fu">min</span>(df<span class="sc">$</span>Time)</span>
+<span id="cb10-220"><a href="#cb10-220" aria-hidden="true" tabindex="-1"></a>  path_m   <span class="ot">&lt;-</span> <span class="fu">compute_path_metrics</span>(df<span class="sc">$</span>COPx, df<span class="sc">$</span>COPy, duration)</span>
+<span id="cb10-221"><a href="#cb10-221" aria-hidden="true" tabindex="-1"></a>  ellipse  <span class="ot">&lt;-</span> <span class="fu">compute_ellipse95</span>(df<span class="sc">$</span>COPx, df<span class="sc">$</span>COPy)</span>
+<span id="cb10-222"><a href="#cb10-222" aria-hidden="true" tabindex="-1"></a>  time_d   <span class="ot">&lt;-</span> <span class="fu">diff</span>(df<span class="sc">$</span>Time)</span>
+<span id="cb10-223"><a href="#cb10-223" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-224"><a href="#cb10-224" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(</span>
+<span id="cb10-225"><a href="#cb10-225" aria-hidden="true" tabindex="-1"></a>    path_m,</span>
+<span id="cb10-226"><a href="#cb10-226" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(</span>
+<span id="cb10-227"><a href="#cb10-227" aria-hidden="true" tabindex="-1"></a>      <span class="at">EllipseArea95     =</span> ellipse<span class="sc">$</span>area,</span>
+<span id="cb10-228"><a href="#cb10-228" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_samples         =</span> n,</span>
+<span id="cb10-229"><a href="#cb10-229" aria-hidden="true" tabindex="-1"></a>      <span class="at">duration_s        =</span> duration,</span>
+<span id="cb10-230"><a href="#cb10-230" aria-hidden="true" tabindex="-1"></a>      <span class="at">Fz_min            =</span> <span class="fu">min</span>(df<span class="sc">$</span>Fz),</span>
+<span id="cb10-231"><a href="#cb10-231" aria-hidden="true" tabindex="-1"></a>      <span class="at">Fz_median         =</span> <span class="fu">median</span>(df<span class="sc">$</span>Fz),</span>
+<span id="cb10-232"><a href="#cb10-232" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_gap_max      =</span> <span class="fu">max</span>(time_d),</span>
+<span id="cb10-233"><a href="#cb10-233" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_nonmonotonic =</span> <span class="fu">any</span>(time_d <span class="sc">&lt;=</span> <span class="dv">0</span>)</span>
+<span id="cb10-234"><a href="#cb10-234" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-235"><a href="#cb10-235" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-236"><a href="#cb10-236" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-237"><a href="#cb10-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-238"><a href="#cb10-238" aria-hidden="true" tabindex="-1"></a><span class="co"># Process trial summary</span></span>
+<span id="cb10-239"><a href="#cb10-239" aria-hidden="true" tabindex="-1"></a>trial_features <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb10-240"><a href="#cb10-240" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Trial, Subject, Vision, Surface, Age, AgeGroup, Gender, Height, Weight, BMI) <span class="sc">%&gt;%</span></span>
+<span id="cb10-241"><a href="#cb10-241" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">compute_trial_features</span>(.x)) <span class="sc">%&gt;%</span></span>
+<span id="cb10-242"><a href="#cb10-242" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb10-243"><a href="#cb10-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-244"><a href="#cb10-244" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Structural &amp; Signal QA Checks</span></span>
+<span id="cb10-245"><a href="#cb10-245" aria-hidden="true" tabindex="-1"></a>modal_n     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(trial_features<span class="sc">$</span>n_samples), <span class="at">decreasing =</span> <span class="cn">TRUE</span>))[<span class="dv">1</span>])</span>
+<span id="cb10-246"><a href="#cb10-246" aria-hidden="true" tabindex="-1"></a>expected_dt <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
 <span id="cb10-247"><a href="#cb10-247" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-248"><a href="#cb10-248" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(p_overview)</span>
-<span id="cb10-249"><a href="#cb10-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-250"><a href="#cb10-250" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Per-Subject Diagnostic Figures (Cumulative Path + 95% Ellipses)</span></span>
-<span id="cb10-251"><a href="#cb10-251" aria-hidden="true" tabindex="-1"></a>master_aug <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
-<span id="cb10-252"><a href="#cb10-252" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Trial, Time) <span class="sc">%&gt;%</span></span>
-<span id="cb10-253"><a href="#cb10-253" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Trial) <span class="sc">%&gt;%</span></span>
-<span id="cb10-254"><a href="#cb10-254" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-255"><a href="#cb10-255" aria-hidden="true" tabindex="-1"></a>    <span class="at">StepDist       =</span> <span class="fu">sqrt</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">diff</span>(COPx))<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">diff</span>(COPy))<span class="sc">^</span><span class="dv">2</span>),</span>
-<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a>    <span class="at">CumulativePath =</span> <span class="fu">cumsum</span>(StepDist)</span>
-<span id="cb10-257"><a href="#cb10-257" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb10-258"><a href="#cb10-258" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb10-259"><a href="#cb10-259" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-260"><a href="#cb10-260" aria-hidden="true" tabindex="-1"></a>rep_lookup <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span></span>
-<span id="cb10-261"><a href="#cb10-261" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(Trial, Subject, Vision, Surface) <span class="sc">%&gt;%</span></span>
-<span id="cb10-262"><a href="#cb10-262" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Subject, Vision, Surface, Trial) <span class="sc">%&gt;%</span></span>
-<span id="cb10-263"><a href="#cb10-263" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Subject, Vision, Surface) <span class="sc">%&gt;%</span></span>
-<span id="cb10-264"><a href="#cb10-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Rep =</span> <span class="fu">factor</span>(<span class="fu">row_number</span>())) <span class="sc">%&gt;%</span></span>
-<span id="cb10-265"><a href="#cb10-265" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb10-266"><a href="#cb10-266" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Rep)</span>
+<span id="cb10-248"><a href="#cb10-248" aria-hidden="true" tabindex="-1"></a>trial_features <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span></span>
+<span id="cb10-249"><a href="#cb10-249" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb10-250"><a href="#cb10-250" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_sample_count   =</span> <span class="fu">abs</span>(n_samples <span class="sc">-</span> modal_n) <span class="sc">&gt;</span> <span class="dv">10</span>,</span>
+<span id="cb10-251"><a href="#cb10-251" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_time_gap       =</span> time_gap_max <span class="sc">&gt;</span> (expected_dt <span class="sc">*</span> <span class="dv">2</span>) <span class="sc">|</span> time_nonmonotonic,</span>
+<span id="cb10-252"><a href="#cb10-252" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_fz_unweighting =</span> Fz_min <span class="sc">&lt;</span> (<span class="fl">0.7</span> <span class="sc">*</span> Fz_median),</span>
+<span id="cb10-253"><a href="#cb10-253" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_any            =</span> flag_sample_count <span class="sc">|</span> flag_time_gap <span class="sc">|</span> flag_fz_unweighting</span>
+<span id="cb10-254"><a href="#cb10-254" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-255"><a href="#cb10-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a><span class="co"># Save QA Logs &amp; Summaries</span></span>
+<span id="cb10-257"><a href="#cb10-257" aria-hidden="true" tabindex="-1"></a>qa_log <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span> <span class="fu">filter</span>(flag_any)</span>
+<span id="cb10-258"><a href="#cb10-258" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(qa_log, <span class="st">"./data/BDS/output/qa_log.csv"</span>)</span>
+<span id="cb10-259"><a href="#cb10-259" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(trial_features, <span class="st">"./data/BDS/output/BDS_trial_summary.rds"</span>)</span>
+<span id="cb10-260"><a href="#cb10-260" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(trial_features, <span class="st">"./data/BDS/output/BDS_trial_summary.csv"</span>)</span>
+<span id="cb10-261"><a href="#cb10-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-262"><a href="#cb10-262" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Overview Outlier-Screening Figure</span></span>
+<span id="cb10-263"><a href="#cb10-263" aria-hidden="true" tabindex="-1"></a>overview_data <span class="ot">&lt;-</span> trial_features <span class="sc">%&gt;%</span></span>
+<span id="cb10-264"><a href="#cb10-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Subject, Vision, Surface, PathLength_Total, MeanVelocity_AP, MeanVelocity_ML, EllipseArea95) <span class="sc">%&gt;%</span></span>
+<span id="cb10-265"><a href="#cb10-265" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(PathLength_Total, MeanVelocity_AP, MeanVelocity_ML, EllipseArea95),</span>
+<span id="cb10-266"><a href="#cb10-266" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Measure"</span>, <span class="at">values_to =</span> <span class="st">"Value"</span>)</span>
 <span id="cb10-267"><a href="#cb10-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-268"><a href="#cb10-268" aria-hidden="true" tabindex="-1"></a>master_aug <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(rep_lookup, <span class="at">by =</span> <span class="st">"Trial"</span>)</span>
-<span id="cb10-269"><a href="#cb10-269" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-270"><a href="#cb10-270" aria-hidden="true" tabindex="-1"></a>make_subject_qa_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(subject_id, df) {</span>
-<span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a>  p_top <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> Time, <span class="at">y =</span> CumulativePath, <span class="at">group =</span> Trial, <span class="at">color =</span> Rep, <span class="at">linetype =</span> Vision)) <span class="sc">+</span></span>
-<span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
-<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span> Surface) <span class="sc">+</span></span>
-<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste</span>(<span class="st">"Subject"</span>, subject_id, <span class="st">"- QA Diagnostic"</span>),</span>
-<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Cumulative COP Path Length (slope ~ velocity; jumps -&gt; possible artifact)"</span>,</span>
-<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Time (s)"</span>, <span class="at">y =</span> <span class="st">"Cumulative path (cm)"</span>) <span class="sc">+</span></span>
-<span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">9</span>)</span>
-<span id="cb10-278"><a href="#cb10-278" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a>  ellipses <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
-<span id="cb10-280"><a href="#cb10-280" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(Trial, Vision, Surface, Rep) <span class="sc">%&gt;%</span></span>
-<span id="cb10-281"><a href="#cb10-281" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">ellipse_boundary_df</span>(.x<span class="sc">$</span>COPx, .x<span class="sc">$</span>COPy)) <span class="sc">%&gt;%</span></span>
-<span id="cb10-282"><a href="#cb10-282" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
-<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a>  p_bottom <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> COPx, <span class="at">y =</span> COPy, <span class="at">group =</span> Trial, <span class="at">color =</span> Rep, <span class="at">linetype =</span> Vision)) <span class="sc">+</span></span>
-<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_path</span>(<span class="at">linewidth =</span> <span class="fl">0.3</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_path</span>(<span class="at">data =</span> ellipses, <span class="fu">aes</span>(<span class="at">x =</span> ex, <span class="at">y =</span> ey, <span class="at">group =</span> Trial), <span class="at">linewidth =</span> <span class="fl">0.5</span>, <span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
-<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span> Surface) <span class="sc">+</span></span>
-<span id="cb10-288"><a href="#cb10-288" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
-<span id="cb10-289"><a href="#cb10-289" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Stabilogram with 95% Confidence Ellipses"</span>, <span class="at">x =</span> <span class="st">"COPx (cm)"</span>, <span class="at">y =</span> <span class="st">"COPy (cm)"</span>) <span class="sc">+</span></span>
-<span id="cb10-290"><a href="#cb10-290" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">9</span>)</span>
-<span id="cb10-291"><a href="#cb10-291" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb10-292"><a href="#cb10-292" aria-hidden="true" tabindex="-1"></a>  (p_top <span class="sc">/</span> p_bottom) <span class="sc">+</span> <span class="fu">plot_layout</span>(<span class="at">guides =</span> <span class="st">"collect"</span>)</span>
-<span id="cb10-293"><a href="#cb10-293" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-294"><a href="#cb10-294" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-295"><a href="#cb10-295" aria-hidden="true" tabindex="-1"></a><span class="co"># Save per-subject plots to directory and display Subject 1 as example</span></span>
-<span id="cb10-296"><a href="#cb10-296" aria-hidden="true" tabindex="-1"></a>qa_dir <span class="ot">&lt;-</span> <span class="st">"./data/BDS/output/qa_plots"</span></span>
-<span id="cb10-297"><a href="#cb10-297" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(qa_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-298"><a href="#cb10-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-299"><a href="#cb10-299" aria-hidden="true" tabindex="-1"></a>subject_ids <span class="ot">&lt;-</span> <span class="fu">unique</span>(master_aug<span class="sc">$</span>Subject)</span>
-<span id="cb10-300"><a href="#cb10-300" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (sid <span class="cf">in</span> subject_ids) {</span>
-<span id="cb10-301"><a href="#cb10-301" aria-hidden="true" tabindex="-1"></a>  df_sub <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Subject <span class="sc">==</span> sid)</span>
-<span id="cb10-302"><a href="#cb10-302" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">make_subject_qa_plot</span>(sid, df_sub)</span>
-<span id="cb10-303"><a href="#cb10-303" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggsave</span>(<span class="fu">file.path</span>(qa_dir, <span class="fu">sprintf</span>(<span class="st">"subject_%03d_QA.png"</span>, sid)), p, <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">9</span>, <span class="at">dpi =</span> <span class="dv">100</span>)</span>
-<span id="cb10-304"><a href="#cb10-304" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-305"><a href="#cb10-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-306"><a href="#cb10-306" aria-hidden="true" tabindex="-1"></a><span class="co"># Display Subject 1 in document</span></span>
-<span id="cb10-307"><a href="#cb10-307" aria-hidden="true" tabindex="-1"></a><span class="fu">make_subject_qa_plot</span>(subject_ids[<span class="dv">1</span>], master_aug <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Subject <span class="sc">==</span> subject_ids[<span class="dv">1</span>]))</span>
-<span id="cb10-308"><a href="#cb10-308" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-309"><a href="#cb10-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-310"><a href="#cb10-310" aria-hidden="true" tabindex="-1"></a><span class="fu">## Python (`numpy`, `scipy` &amp; `matplotlib`)</span></span>
-<span id="cb10-311"><a href="#cb10-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-314"><a href="#cb10-314" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
-<span id="cb10-315"><a href="#cb10-315" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script01-python</span></span>
-<span id="cb10-316"><a href="#cb10-316" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
-<span id="cb10-317"><a href="#cb10-317" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 8</span></span>
-<span id="cb10-318"><a href="#cb10-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-319"><a href="#cb10-319" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb10-320"><a href="#cb10-320" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb10-321"><a href="#cb10-321" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb10-322"><a href="#cb10-322" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> f</span>
-<span id="cb10-323"><a href="#cb10-323" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb10-324"><a href="#cb10-324" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb10-325"><a href="#cb10-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-326"><a href="#cb10-326" aria-hidden="true" tabindex="-1"></a>master <span class="op">=</span> pd.read_parquet(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
-<span id="cb10-327"><a href="#cb10-327" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-328"><a href="#cb10-328" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Feature Extraction &amp; Ellipse Math</span></span>
-<span id="cb10-329"><a href="#cb10-329" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_ellipse95(x, y):</span>
-<span id="cb10-330"><a href="#cb10-330" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(x)</span>
-<span id="cb10-331"><a href="#cb10-331" aria-hidden="true" tabindex="-1"></a>    cov_mat <span class="op">=</span> np.cov(x, y)</span>
-<span id="cb10-332"><a href="#cb10-332" aria-hidden="true" tabindex="-1"></a>    eigvals, eigvecs <span class="op">=</span> np.linalg.eigh(cov_mat)</span>
-<span id="cb10-333"><a href="#cb10-333" aria-hidden="true" tabindex="-1"></a>    f_val <span class="op">=</span> f.ppf(<span class="fl">0.95</span>, <span class="dv">2</span>, n <span class="op">-</span> <span class="dv">2</span>)</span>
-<span id="cb10-334"><a href="#cb10-334" aria-hidden="true" tabindex="-1"></a>    area <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> f_val <span class="op">*</span> np.sqrt(np.maximum(<span class="dv">0</span>, eigvals[<span class="dv">0</span>] <span class="op">*</span> eigvals[<span class="dv">1</span>]))</span>
-<span id="cb10-335"><a href="#cb10-335" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> area, eigvals, eigvecs, f_val, np.mean(x), np.mean(y)</span>
-<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-337"><a href="#cb10-337" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ellipse_boundary_df(x, y, n_points<span class="op">=</span><span class="dv">100</span>):</span>
-<span id="cb10-338"><a href="#cb10-338" aria-hidden="true" tabindex="-1"></a>    area, eigvals, eigvecs, f_val, cx, cy <span class="op">=</span> compute_ellipse95(x, y)</span>
-<span id="cb10-339"><a href="#cb10-339" aria-hidden="true" tabindex="-1"></a>    axis_lengths <span class="op">=</span> np.sqrt(<span class="dv">2</span> <span class="op">*</span> f_val <span class="op">*</span> np.maximum(<span class="dv">0</span>, eigvals))</span>
-<span id="cb10-340"><a href="#cb10-340" aria-hidden="true" tabindex="-1"></a>    theta <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, n_points)</span>
-<span id="cb10-341"><a href="#cb10-341" aria-hidden="true" tabindex="-1"></a>    circle <span class="op">=</span> np.vstack([np.cos(theta), np.sin(theta)])</span>
-<span id="cb10-342"><a href="#cb10-342" aria-hidden="true" tabindex="-1"></a>    pts <span class="op">=</span> eigvecs <span class="op">@</span> np.diag(axis_lengths) <span class="op">@</span> circle</span>
-<span id="cb10-343"><a href="#cb10-343" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.DataFrame({<span class="st">'ex'</span>: cx <span class="op">+</span> pts[<span class="dv">0</span>, :], <span class="st">'ey'</span>: cy <span class="op">+</span> pts[<span class="dv">1</span>, :]})</span>
+<span id="cb10-268"><a href="#cb10-268" aria-hidden="true" tabindex="-1"></a>p_overview <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(overview_data, <span class="fu">aes</span>(<span class="at">x =</span> Surface, <span class="at">y =</span> Value, <span class="at">fill =</span> Vision)) <span class="sc">+</span></span>
+<span id="cb10-269"><a href="#cb10-269" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">outlier.alpha =</span> <span class="fl">0.5</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.8</span>)) <span class="sc">+</span></span>
+<span id="cb10-270"><a href="#cb10-270" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Measure, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Trial-level DV Distributions (Quality Assurance Overview)"</span>, <span class="at">y =</span> <span class="cn">NULL</span>)</span>
+<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(p_overview)</span>
+<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Per-Subject Diagnostic Figures (Cumulative Path + 95% Ellipses)</span></span>
+<span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a>master_aug <span class="ot">&lt;-</span> master <span class="sc">%&gt;%</span></span>
+<span id="cb10-278"><a href="#cb10-278" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Trial, Time) <span class="sc">%&gt;%</span></span>
+<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Trial) <span class="sc">%&gt;%</span></span>
+<span id="cb10-280"><a href="#cb10-280" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb10-281"><a href="#cb10-281" aria-hidden="true" tabindex="-1"></a>    <span class="at">StepDist       =</span> <span class="fu">sqrt</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">diff</span>(COPx))<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">diff</span>(COPy))<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb10-282"><a href="#cb10-282" aria-hidden="true" tabindex="-1"></a>    <span class="at">CumulativePath =</span> <span class="fu">cumsum</span>(StepDist)</span>
+<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a>rep_lookup <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span></span>
+<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(Trial, Subject, Vision, Surface) <span class="sc">%&gt;%</span></span>
+<span id="cb10-288"><a href="#cb10-288" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Subject, Vision, Surface, Trial) <span class="sc">%&gt;%</span></span>
+<span id="cb10-289"><a href="#cb10-289" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Subject, Vision, Surface) <span class="sc">%&gt;%</span></span>
+<span id="cb10-290"><a href="#cb10-290" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Rep =</span> <span class="fu">factor</span>(<span class="fu">row_number</span>())) <span class="sc">%&gt;%</span></span>
+<span id="cb10-291"><a href="#cb10-291" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb10-292"><a href="#cb10-292" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Trial, Rep)</span>
+<span id="cb10-293"><a href="#cb10-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-294"><a href="#cb10-294" aria-hidden="true" tabindex="-1"></a>master_aug <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(rep_lookup, <span class="at">by =</span> <span class="st">"Trial"</span>)</span>
+<span id="cb10-295"><a href="#cb10-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-296"><a href="#cb10-296" aria-hidden="true" tabindex="-1"></a>make_subject_qa_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(subject_id, df) {</span>
+<span id="cb10-297"><a href="#cb10-297" aria-hidden="true" tabindex="-1"></a>  p_top <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> Time, <span class="at">y =</span> CumulativePath, <span class="at">group =</span> Trial, <span class="at">color =</span> Rep, <span class="at">linetype =</span> Vision)) <span class="sc">+</span></span>
+<span id="cb10-298"><a href="#cb10-298" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb10-299"><a href="#cb10-299" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span> Surface) <span class="sc">+</span></span>
+<span id="cb10-300"><a href="#cb10-300" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste</span>(<span class="st">"Subject"</span>, subject_id, <span class="st">"- QA Diagnostic"</span>),</span>
+<span id="cb10-301"><a href="#cb10-301" aria-hidden="true" tabindex="-1"></a>         <span class="at">subtitle =</span> <span class="st">"Cumulative COP Path Length (slope ~ velocity; jumps -&gt; possible artifact)"</span>,</span>
+<span id="cb10-302"><a href="#cb10-302" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"Time (s)"</span>, <span class="at">y =</span> <span class="st">"Cumulative path (cm)"</span>) <span class="sc">+</span></span>
+<span id="cb10-303"><a href="#cb10-303" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">9</span>)</span>
+<span id="cb10-304"><a href="#cb10-304" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-305"><a href="#cb10-305" aria-hidden="true" tabindex="-1"></a>  ellipses <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb10-306"><a href="#cb10-306" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(Trial, Vision, Surface, Rep) <span class="sc">%&gt;%</span></span>
+<span id="cb10-307"><a href="#cb10-307" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">ellipse_boundary_df</span>(.x<span class="sc">$</span>COPx, .x<span class="sc">$</span>COPy)) <span class="sc">%&gt;%</span></span>
+<span id="cb10-308"><a href="#cb10-308" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
+<span id="cb10-309"><a href="#cb10-309" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-310"><a href="#cb10-310" aria-hidden="true" tabindex="-1"></a>  p_bottom <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> COPx, <span class="at">y =</span> COPy, <span class="at">group =</span> Trial, <span class="at">color =</span> Rep, <span class="at">linetype =</span> Vision)) <span class="sc">+</span></span>
+<span id="cb10-311"><a href="#cb10-311" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_path</span>(<span class="at">linewidth =</span> <span class="fl">0.3</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb10-312"><a href="#cb10-312" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_path</span>(<span class="at">data =</span> ellipses, <span class="fu">aes</span>(<span class="at">x =</span> ex, <span class="at">y =</span> ey, <span class="at">group =</span> Trial), <span class="at">linewidth =</span> <span class="fl">0.5</span>, <span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb10-313"><a href="#cb10-313" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span> Surface) <span class="sc">+</span></span>
+<span id="cb10-314"><a href="#cb10-314" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
+<span id="cb10-315"><a href="#cb10-315" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Stabilogram with 95% Confidence Ellipses"</span>, <span class="at">x =</span> <span class="st">"COPx (cm)"</span>, <span class="at">y =</span> <span class="st">"COPy (cm)"</span>) <span class="sc">+</span></span>
+<span id="cb10-316"><a href="#cb10-316" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">9</span>)</span>
+<span id="cb10-317"><a href="#cb10-317" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-318"><a href="#cb10-318" aria-hidden="true" tabindex="-1"></a>  (p_top <span class="sc">/</span> p_bottom) <span class="sc">+</span> <span class="fu">plot_layout</span>(<span class="at">guides =</span> <span class="st">"collect"</span>)</span>
+<span id="cb10-319"><a href="#cb10-319" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-320"><a href="#cb10-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-321"><a href="#cb10-321" aria-hidden="true" tabindex="-1"></a><span class="co"># Save per-subject plots to directory and display Subject 1 as example</span></span>
+<span id="cb10-322"><a href="#cb10-322" aria-hidden="true" tabindex="-1"></a>qa_dir <span class="ot">&lt;-</span> <span class="st">"./data/BDS/output/qa_plots"</span></span>
+<span id="cb10-323"><a href="#cb10-323" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(qa_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-324"><a href="#cb10-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-325"><a href="#cb10-325" aria-hidden="true" tabindex="-1"></a>subject_ids <span class="ot">&lt;-</span> <span class="fu">unique</span>(master_aug<span class="sc">$</span>Subject)</span>
+<span id="cb10-326"><a href="#cb10-326" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (sid <span class="cf">in</span> subject_ids) {</span>
+<span id="cb10-327"><a href="#cb10-327" aria-hidden="true" tabindex="-1"></a>  df_sub <span class="ot">&lt;-</span> master_aug <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Subject <span class="sc">==</span> sid)</span>
+<span id="cb10-328"><a href="#cb10-328" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">make_subject_qa_plot</span>(sid, df_sub)</span>
+<span id="cb10-329"><a href="#cb10-329" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggsave</span>(<span class="fu">file.path</span>(qa_dir, <span class="fu">sprintf</span>(<span class="st">"subject_%03d_QA.png"</span>, sid)), p, <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">9</span>, <span class="at">dpi =</span> <span class="dv">100</span>)</span>
+<span id="cb10-330"><a href="#cb10-330" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-331"><a href="#cb10-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-332"><a href="#cb10-332" aria-hidden="true" tabindex="-1"></a><span class="co"># Display Subject 1 in document</span></span>
+<span id="cb10-333"><a href="#cb10-333" aria-hidden="true" tabindex="-1"></a><span class="fu">make_subject_qa_plot</span>(subject_ids[<span class="dv">1</span>], master_aug <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Subject <span class="sc">==</span> subject_ids[<span class="dv">1</span>]))</span>
+<span id="cb10-334"><a href="#cb10-334" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-335"><a href="#cb10-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a><span class="fu">## Python (`numpy`, `scipy` &amp; `matplotlib`)</span></span>
+<span id="cb10-337"><a href="#cb10-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-340"><a href="#cb10-340" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb10-341"><a href="#cb10-341" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: script01-python</span></span>
+<span id="cb10-342"><a href="#cb10-342" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb10-343"><a href="#cb10-343" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 8</span></span>
 <span id="cb10-344"><a href="#cb10-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-345"><a href="#cb10-345" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_trial_features(df):</span>
-<span id="cb10-346"><a href="#cb10-346" aria-hidden="true" tabindex="-1"></a>    duration <span class="op">=</span> df[<span class="st">"Time"</span>].<span class="bu">max</span>() <span class="op">-</span> df[<span class="st">"Time"</span>].<span class="bu">min</span>()</span>
-<span id="cb10-347"><a href="#cb10-347" aria-hidden="true" tabindex="-1"></a>    dx <span class="op">=</span> np.diff(df[<span class="st">"COPx"</span>])</span>
-<span id="cb10-348"><a href="#cb10-348" aria-hidden="true" tabindex="-1"></a>    dy <span class="op">=</span> np.diff(df[<span class="st">"COPy"</span>])</span>
-<span id="cb10-349"><a href="#cb10-349" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-350"><a href="#cb10-350" aria-hidden="true" tabindex="-1"></a>    pl_ml  <span class="op">=</span> np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(dx))</span>
-<span id="cb10-351"><a href="#cb10-351" aria-hidden="true" tabindex="-1"></a>    pl_ap  <span class="op">=</span> np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(dy))</span>
-<span id="cb10-352"><a href="#cb10-352" aria-hidden="true" tabindex="-1"></a>    pl_tot <span class="op">=</span> np.<span class="bu">sum</span>(np.sqrt(dx<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> dy<span class="op">**</span><span class="dv">2</span>))</span>
-<span id="cb10-353"><a href="#cb10-353" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a>    area, _, _, _, _, _ <span class="op">=</span> compute_ellipse95(df[<span class="st">"COPx"</span>], df[<span class="st">"COPy"</span>])</span>
-<span id="cb10-355"><a href="#cb10-355" aria-hidden="true" tabindex="-1"></a>    time_diffs <span class="op">=</span> np.diff(df[<span class="st">"Time"</span>])</span>
-<span id="cb10-356"><a href="#cb10-356" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-357"><a href="#cb10-357" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.Series({</span>
-<span id="cb10-358"><a href="#cb10-358" aria-hidden="true" tabindex="-1"></a>        <span class="st">"PathLength_AP"</span>: pl_ap, <span class="st">"PathLength_ML"</span>: pl_ml, <span class="st">"PathLength_Total"</span>: pl_tot,</span>
-<span id="cb10-359"><a href="#cb10-359" aria-hidden="true" tabindex="-1"></a>        <span class="st">"MeanVelocity_AP"</span>: pl_ap <span class="op">/</span> duration, <span class="st">"MeanVelocity_ML"</span>: pl_ml <span class="op">/</span> duration,</span>
-<span id="cb10-360"><a href="#cb10-360" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EllipseArea95"</span>: area, <span class="st">"n_samples"</span>: <span class="bu">len</span>(df), <span class="st">"duration_s"</span>: duration,</span>
-<span id="cb10-361"><a href="#cb10-361" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Fz_min"</span>: df[<span class="st">"Fz"</span>].<span class="bu">min</span>(), <span class="st">"Fz_median"</span>: df[<span class="st">"Fz"</span>].median(),</span>
-<span id="cb10-362"><a href="#cb10-362" aria-hidden="true" tabindex="-1"></a>        <span class="st">"time_gap_max"</span>: time_diffs.<span class="bu">max</span>(), <span class="st">"time_nonmonotonic"</span>: (time_diffs <span class="op">&lt;=</span> <span class="dv">0</span>).<span class="bu">any</span>()</span>
-<span id="cb10-363"><a href="#cb10-363" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb10-364"><a href="#cb10-364" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-365"><a href="#cb10-365" aria-hidden="true" tabindex="-1"></a>meta_cols <span class="op">=</span> [<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Age"</span>, <span class="st">"AgeGroup"</span>, <span class="st">"Gender"</span>, <span class="st">"Height"</span>, <span class="st">"Weight"</span>, <span class="st">"BMI"</span>]</span>
-<span id="cb10-366"><a href="#cb10-366" aria-hidden="true" tabindex="-1"></a>trial_summary <span class="op">=</span> master.groupby(meta_cols, observed<span class="op">=</span><span class="va">True</span>).<span class="bu">apply</span>(compute_trial_features).reset_index()</span>
-<span id="cb10-367"><a href="#cb10-367" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-368"><a href="#cb10-368" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. QA Flags</span></span>
-<span id="cb10-369"><a href="#cb10-369" aria-hidden="true" tabindex="-1"></a>modal_n <span class="op">=</span> trial_summary[<span class="st">"n_samples"</span>].mode()[<span class="dv">0</span>]</span>
-<span id="cb10-370"><a href="#cb10-370" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_sample_count"</span>]   <span class="op">=</span> (trial_summary[<span class="st">"n_samples"</span>] <span class="op">-</span> modal_n).<span class="bu">abs</span>() <span class="op">&gt;</span> <span class="dv">10</span></span>
-<span id="cb10-371"><a href="#cb10-371" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_time_gap"</span>]       <span class="op">=</span> (trial_summary[<span class="st">"time_gap_max"</span>] <span class="op">&gt;</span> <span class="fl">0.02</span>) <span class="op">|</span> trial_summary[<span class="st">"time_nonmonotonic"</span>]</span>
-<span id="cb10-372"><a href="#cb10-372" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_fz_unweighting"</span>] <span class="op">=</span> trial_summary[<span class="st">"Fz_min"</span>] <span class="op">&lt;</span> (<span class="fl">0.7</span> <span class="op">*</span> trial_summary[<span class="st">"Fz_median"</span>])</span>
-<span id="cb10-373"><a href="#cb10-373" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_any"</span>]            <span class="op">=</span> trial_summary[<span class="st">"flag_sample_count"</span>] <span class="op">|</span> trial_summary[<span class="st">"flag_time_gap"</span>] <span class="op">|</span> trial_summary[<span class="st">"flag_fz_unweighting"</span>]</span>
-<span id="cb10-374"><a href="#cb10-374" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-375"><a href="#cb10-375" aria-hidden="true" tabindex="-1"></a>qa_log <span class="op">=</span> trial_summary[trial_summary[<span class="st">"flag_any"</span>]]</span>
-<span id="cb10-376"><a href="#cb10-376" aria-hidden="true" tabindex="-1"></a>qa_log.to_csv(<span class="st">"./data/BDS/output/qa_log.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb10-377"><a href="#cb10-377" aria-hidden="true" tabindex="-1"></a>trial_summary.to_csv(<span class="st">"./data/BDS/output/BDS_trial_summary.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb10-378"><a href="#cb10-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-379"><a href="#cb10-379" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Overview Outlier-Screening Figure</span></span>
-<span id="cb10-380"><a href="#cb10-380" aria-hidden="true" tabindex="-1"></a>overview_data <span class="op">=</span> trial_summary.melt(</span>
-<span id="cb10-381"><a href="#cb10-381" aria-hidden="true" tabindex="-1"></a>    id_vars<span class="op">=</span>[<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>],</span>
-<span id="cb10-382"><a href="#cb10-382" aria-hidden="true" tabindex="-1"></a>    value_vars<span class="op">=</span>[<span class="st">"PathLength_Total"</span>, <span class="st">"MeanVelocity_AP"</span>, <span class="st">"MeanVelocity_ML"</span>, <span class="st">"EllipseArea95"</span>],</span>
-<span id="cb10-383"><a href="#cb10-383" aria-hidden="true" tabindex="-1"></a>    var_name<span class="op">=</span><span class="st">"Measure"</span>, value_name<span class="op">=</span><span class="st">"Value"</span></span>
-<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-385"><a href="#cb10-385" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-386"><a href="#cb10-386" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> sns.catplot(</span>
-<span id="cb10-387"><a href="#cb10-387" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>overview_data, x<span class="op">=</span><span class="st">"Surface"</span>, y<span class="op">=</span><span class="st">"Value"</span>, hue<span class="op">=</span><span class="st">"Vision"</span>, col<span class="op">=</span><span class="st">"Measure"</span>,</span>
-<span id="cb10-388"><a href="#cb10-388" aria-hidden="true" tabindex="-1"></a>    col_wrap<span class="op">=</span><span class="dv">2</span>, kind<span class="op">=</span><span class="st">"box"</span>, height<span class="op">=</span><span class="fl">3.5</span>, aspect<span class="op">=</span><span class="fl">1.2</span>, sharey<span class="op">=</span><span class="va">False</span></span>
-<span id="cb10-389"><a href="#cb10-389" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-390"><a href="#cb10-390" aria-hidden="true" tabindex="-1"></a>g.fig.subplots_adjust(top<span class="op">=</span><span class="fl">0.9</span>)</span>
-<span id="cb10-391"><a href="#cb10-391" aria-hidden="true" tabindex="-1"></a>g.fig.suptitle(<span class="st">"Trial-level DV Distributions (Quality Assurance Overview)"</span>)</span>
-<span id="cb10-392"><a href="#cb10-392" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb10-345"><a href="#cb10-345" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb10-346"><a href="#cb10-346" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb10-347"><a href="#cb10-347" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb10-348"><a href="#cb10-348" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> f</span>
+<span id="cb10-349"><a href="#cb10-349" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb10-350"><a href="#cb10-350" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb10-351"><a href="#cb10-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-352"><a href="#cb10-352" aria-hidden="true" tabindex="-1"></a>master <span class="op">=</span> pd.read_parquet(<span class="st">"./data/BDS/output/BDS_master.parquet"</span>)</span>
+<span id="cb10-353"><a href="#cb10-353" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Feature Extraction &amp; Ellipse Math</span></span>
+<span id="cb10-355"><a href="#cb10-355" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_ellipse95(x, y):</span>
+<span id="cb10-356"><a href="#cb10-356" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(x)</span>
+<span id="cb10-357"><a href="#cb10-357" aria-hidden="true" tabindex="-1"></a>    cov_mat <span class="op">=</span> np.cov(x, y)</span>
+<span id="cb10-358"><a href="#cb10-358" aria-hidden="true" tabindex="-1"></a>    eigvals, eigvecs <span class="op">=</span> np.linalg.eigh(cov_mat)</span>
+<span id="cb10-359"><a href="#cb10-359" aria-hidden="true" tabindex="-1"></a>    f_val <span class="op">=</span> f.ppf(<span class="fl">0.95</span>, <span class="dv">2</span>, n <span class="op">-</span> <span class="dv">2</span>)</span>
+<span id="cb10-360"><a href="#cb10-360" aria-hidden="true" tabindex="-1"></a>    area <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> f_val <span class="op">*</span> np.sqrt(np.maximum(<span class="dv">0</span>, eigvals[<span class="dv">0</span>] <span class="op">*</span> eigvals[<span class="dv">1</span>]))</span>
+<span id="cb10-361"><a href="#cb10-361" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> area, eigvals, eigvecs, f_val, np.mean(x), np.mean(y)</span>
+<span id="cb10-362"><a href="#cb10-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-363"><a href="#cb10-363" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ellipse_boundary_df(x, y, n_points<span class="op">=</span><span class="dv">100</span>):</span>
+<span id="cb10-364"><a href="#cb10-364" aria-hidden="true" tabindex="-1"></a>    area, eigvals, eigvecs, f_val, cx, cy <span class="op">=</span> compute_ellipse95(x, y)</span>
+<span id="cb10-365"><a href="#cb10-365" aria-hidden="true" tabindex="-1"></a>    axis_lengths <span class="op">=</span> np.sqrt(<span class="dv">2</span> <span class="op">*</span> f_val <span class="op">*</span> np.maximum(<span class="dv">0</span>, eigvals))</span>
+<span id="cb10-366"><a href="#cb10-366" aria-hidden="true" tabindex="-1"></a>    theta <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">2</span> <span class="op">*</span> np.pi, n_points)</span>
+<span id="cb10-367"><a href="#cb10-367" aria-hidden="true" tabindex="-1"></a>    circle <span class="op">=</span> np.vstack([np.cos(theta), np.sin(theta)])</span>
+<span id="cb10-368"><a href="#cb10-368" aria-hidden="true" tabindex="-1"></a>    pts <span class="op">=</span> eigvecs <span class="op">@</span> np.diag(axis_lengths) <span class="op">@</span> circle</span>
+<span id="cb10-369"><a href="#cb10-369" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.DataFrame({<span class="st">'ex'</span>: cx <span class="op">+</span> pts[<span class="dv">0</span>, :], <span class="st">'ey'</span>: cy <span class="op">+</span> pts[<span class="dv">1</span>, :]})</span>
+<span id="cb10-370"><a href="#cb10-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-371"><a href="#cb10-371" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_trial_features(df):</span>
+<span id="cb10-372"><a href="#cb10-372" aria-hidden="true" tabindex="-1"></a>    duration <span class="op">=</span> df[<span class="st">"Time"</span>].<span class="bu">max</span>() <span class="op">-</span> df[<span class="st">"Time"</span>].<span class="bu">min</span>()</span>
+<span id="cb10-373"><a href="#cb10-373" aria-hidden="true" tabindex="-1"></a>    dx <span class="op">=</span> np.diff(df[<span class="st">"COPx"</span>])</span>
+<span id="cb10-374"><a href="#cb10-374" aria-hidden="true" tabindex="-1"></a>    dy <span class="op">=</span> np.diff(df[<span class="st">"COPy"</span>])</span>
+<span id="cb10-375"><a href="#cb10-375" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-376"><a href="#cb10-376" aria-hidden="true" tabindex="-1"></a>    pl_ml  <span class="op">=</span> np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(dx))</span>
+<span id="cb10-377"><a href="#cb10-377" aria-hidden="true" tabindex="-1"></a>    pl_ap  <span class="op">=</span> np.<span class="bu">sum</span>(np.<span class="bu">abs</span>(dy))</span>
+<span id="cb10-378"><a href="#cb10-378" aria-hidden="true" tabindex="-1"></a>    pl_tot <span class="op">=</span> np.<span class="bu">sum</span>(np.sqrt(dx<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> dy<span class="op">**</span><span class="dv">2</span>))</span>
+<span id="cb10-379"><a href="#cb10-379" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-380"><a href="#cb10-380" aria-hidden="true" tabindex="-1"></a>    area, _, _, _, _, _ <span class="op">=</span> compute_ellipse95(df[<span class="st">"COPx"</span>], df[<span class="st">"COPy"</span>])</span>
+<span id="cb10-381"><a href="#cb10-381" aria-hidden="true" tabindex="-1"></a>    time_diffs <span class="op">=</span> np.diff(df[<span class="st">"Time"</span>])</span>
+<span id="cb10-382"><a href="#cb10-382" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-383"><a href="#cb10-383" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.Series({</span>
+<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a>        <span class="st">"PathLength_AP"</span>: pl_ap, <span class="st">"PathLength_ML"</span>: pl_ml, <span class="st">"PathLength_Total"</span>: pl_tot,</span>
+<span id="cb10-385"><a href="#cb10-385" aria-hidden="true" tabindex="-1"></a>        <span class="st">"MeanVelocity_AP"</span>: pl_ap <span class="op">/</span> duration, <span class="st">"MeanVelocity_ML"</span>: pl_ml <span class="op">/</span> duration,</span>
+<span id="cb10-386"><a href="#cb10-386" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EllipseArea95"</span>: area, <span class="st">"n_samples"</span>: <span class="bu">len</span>(df), <span class="st">"duration_s"</span>: duration,</span>
+<span id="cb10-387"><a href="#cb10-387" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Fz_min"</span>: df[<span class="st">"Fz"</span>].<span class="bu">min</span>(), <span class="st">"Fz_median"</span>: df[<span class="st">"Fz"</span>].median(),</span>
+<span id="cb10-388"><a href="#cb10-388" aria-hidden="true" tabindex="-1"></a>        <span class="st">"time_gap_max"</span>: time_diffs.<span class="bu">max</span>(), <span class="st">"time_nonmonotonic"</span>: (time_diffs <span class="op">&lt;=</span> <span class="dv">0</span>).<span class="bu">any</span>()</span>
+<span id="cb10-389"><a href="#cb10-389" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb10-390"><a href="#cb10-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-391"><a href="#cb10-391" aria-hidden="true" tabindex="-1"></a>meta_cols <span class="op">=</span> [<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Age"</span>, <span class="st">"AgeGroup"</span>, <span class="st">"Gender"</span>, <span class="st">"Height"</span>, <span class="st">"Weight"</span>, <span class="st">"BMI"</span>]</span>
+<span id="cb10-392"><a href="#cb10-392" aria-hidden="true" tabindex="-1"></a>trial_summary <span class="op">=</span> master.groupby(meta_cols, observed<span class="op">=</span><span class="va">True</span>).<span class="bu">apply</span>(compute_trial_features).reset_index()</span>
 <span id="cb10-393"><a href="#cb10-393" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-394"><a href="#cb10-394" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Per-Subject Diagnostic Figures with Faceting by Surface</span></span>
-<span id="cb10-395"><a href="#cb10-395" aria-hidden="true" tabindex="-1"></a>master_aug <span class="op">=</span> master.sort_values([<span class="st">"Trial"</span>, <span class="st">"Time"</span>]).copy()</span>
-<span id="cb10-396"><a href="#cb10-396" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"dx"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"COPx"</span>].diff().fillna(<span class="dv">0</span>)</span>
-<span id="cb10-397"><a href="#cb10-397" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"dy"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"COPy"</span>].diff().fillna(<span class="dv">0</span>)</span>
-<span id="cb10-398"><a href="#cb10-398" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"StepDist"</span>] <span class="op">=</span> np.sqrt(master_aug[<span class="st">"dx"</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> master_aug[<span class="st">"dy"</span>]<span class="op">**</span><span class="dv">2</span>)</span>
-<span id="cb10-399"><a href="#cb10-399" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"CumulativePath"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"StepDist"</span>].cumsum()</span>
+<span id="cb10-394"><a href="#cb10-394" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. QA Flags</span></span>
+<span id="cb10-395"><a href="#cb10-395" aria-hidden="true" tabindex="-1"></a>modal_n <span class="op">=</span> trial_summary[<span class="st">"n_samples"</span>].mode()[<span class="dv">0</span>]</span>
+<span id="cb10-396"><a href="#cb10-396" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_sample_count"</span>]   <span class="op">=</span> (trial_summary[<span class="st">"n_samples"</span>] <span class="op">-</span> modal_n).<span class="bu">abs</span>() <span class="op">&gt;</span> <span class="dv">10</span></span>
+<span id="cb10-397"><a href="#cb10-397" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_time_gap"</span>]       <span class="op">=</span> (trial_summary[<span class="st">"time_gap_max"</span>] <span class="op">&gt;</span> <span class="fl">0.02</span>) <span class="op">|</span> trial_summary[<span class="st">"time_nonmonotonic"</span>]</span>
+<span id="cb10-398"><a href="#cb10-398" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_fz_unweighting"</span>] <span class="op">=</span> trial_summary[<span class="st">"Fz_min"</span>] <span class="op">&lt;</span> (<span class="fl">0.7</span> <span class="op">*</span> trial_summary[<span class="st">"Fz_median"</span>])</span>
+<span id="cb10-399"><a href="#cb10-399" aria-hidden="true" tabindex="-1"></a>trial_summary[<span class="st">"flag_any"</span>]            <span class="op">=</span> trial_summary[<span class="st">"flag_sample_count"</span>] <span class="op">|</span> trial_summary[<span class="st">"flag_time_gap"</span>] <span class="op">|</span> trial_summary[<span class="st">"flag_fz_unweighting"</span>]</span>
 <span id="cb10-400"><a href="#cb10-400" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-401"><a href="#cb10-401" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Rep indicator</span></span>
-<span id="cb10-402"><a href="#cb10-402" aria-hidden="true" tabindex="-1"></a>rep_df <span class="op">=</span> master_aug[[<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>]].drop_duplicates().sort_values([<span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Trial"</span>])</span>
-<span id="cb10-403"><a href="#cb10-403" aria-hidden="true" tabindex="-1"></a>rep_df[<span class="st">"Rep"</span>] <span class="op">=</span> rep_df.groupby([<span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>]).cumcount() <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb10-404"><a href="#cb10-404" aria-hidden="true" tabindex="-1"></a>master_aug <span class="op">=</span> master_aug.merge(rep_df[[<span class="st">"Trial"</span>, <span class="st">"Rep"</span>]], on<span class="op">=</span><span class="st">"Trial"</span>)</span>
-<span id="cb10-405"><a href="#cb10-405" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-406"><a href="#cb10-406" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_subject_qa_plot(subject_id, df_sub):</span>
-<span id="cb10-407"><a href="#cb10-407" aria-hidden="true" tabindex="-1"></a>    fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="st">'row'</span>, sharey<span class="op">=</span><span class="st">'row'</span>)</span>
-<span id="cb10-408"><a href="#cb10-408" aria-hidden="true" tabindex="-1"></a>    palette <span class="op">=</span> {<span class="dv">1</span>: <span class="st">"#1E6654"</span>, <span class="dv">2</span>: <span class="st">"#CC5500"</span>, <span class="dv">3</span>: <span class="st">"#5B7C99"</span>}</span>
-<span id="cb10-409"><a href="#cb10-409" aria-hidden="true" tabindex="-1"></a>    surfaces <span class="op">=</span> [<span class="st">"Firm"</span>, <span class="st">"Foam"</span>]</span>
-<span id="cb10-410"><a href="#cb10-410" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-411"><a href="#cb10-411" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j, surf <span class="kw">in</span> <span class="bu">enumerate</span>(surfaces):</span>
-<span id="cb10-412"><a href="#cb10-412" aria-hidden="true" tabindex="-1"></a>        df_surf <span class="op">=</span> df_sub[df_sub[<span class="st">"Surface"</span>] <span class="op">==</span> surf]</span>
-<span id="cb10-413"><a href="#cb10-413" aria-hidden="true" tabindex="-1"></a>        ax_top <span class="op">=</span> axes[<span class="dv">0</span>, j]</span>
-<span id="cb10-414"><a href="#cb10-414" aria-hidden="true" tabindex="-1"></a>        ax_bot <span class="op">=</span> axes[<span class="dv">1</span>, j]</span>
-<span id="cb10-415"><a href="#cb10-415" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb10-416"><a href="#cb10-416" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Top Panel: Cumulative Path (Faceted by Surface)</span></span>
-<span id="cb10-417"><a href="#cb10-417" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (tr, rep, vis), df_tr <span class="kw">in</span> df_surf.groupby([<span class="st">"Trial"</span>, <span class="st">"Rep"</span>, <span class="st">"Vision"</span>], observed<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb10-418"><a href="#cb10-418" aria-hidden="true" tabindex="-1"></a>            ls <span class="op">=</span> <span class="st">"-"</span> <span class="cf">if</span> vis <span class="op">==</span> <span class="st">"Open"</span> <span class="cf">else</span> <span class="st">"--"</span></span>
-<span id="cb10-419"><a href="#cb10-419" aria-hidden="true" tabindex="-1"></a>            c <span class="op">=</span> palette[rep]</span>
-<span id="cb10-420"><a href="#cb10-420" aria-hidden="true" tabindex="-1"></a>            ax_top.plot(df_tr[<span class="st">"Time"</span>], df_tr[<span class="st">"CumulativePath"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
-<span id="cb10-421"><a href="#cb10-421" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb10-422"><a href="#cb10-422" aria-hidden="true" tabindex="-1"></a>        ax_top.set_title(<span class="ss">f"Surface: </span><span class="sc">{</span>surf<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb10-423"><a href="#cb10-423" aria-hidden="true" tabindex="-1"></a>        ax_top.set_xlabel(<span class="st">"Time (s)"</span>)</span>
-<span id="cb10-424"><a href="#cb10-424" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> j <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb10-425"><a href="#cb10-425" aria-hidden="true" tabindex="-1"></a>            ax_top.set_ylabel(<span class="st">"Cumulative path (cm)"</span>)</span>
-<span id="cb10-426"><a href="#cb10-426" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb10-427"><a href="#cb10-427" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Bottom Panel: Stabilogram + 95% Ellipses (Faceted by Surface)</span></span>
-<span id="cb10-428"><a href="#cb10-428" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (tr, rep, vis), df_tr <span class="kw">in</span> df_surf.groupby([<span class="st">"Trial"</span>, <span class="st">"Rep"</span>, <span class="st">"Vision"</span>], observed<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb10-429"><a href="#cb10-429" aria-hidden="true" tabindex="-1"></a>            ls <span class="op">=</span> <span class="st">"-"</span> <span class="cf">if</span> vis <span class="op">==</span> <span class="st">"Open"</span> <span class="cf">else</span> <span class="st">"--"</span></span>
-<span id="cb10-430"><a href="#cb10-430" aria-hidden="true" tabindex="-1"></a>            c <span class="op">=</span> palette[rep]</span>
-<span id="cb10-431"><a href="#cb10-431" aria-hidden="true" tabindex="-1"></a>            ax_bot.plot(df_tr[<span class="st">"COPx"</span>], df_tr[<span class="st">"COPy"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.3</span>, linewidth<span class="op">=</span><span class="fl">0.8</span>)</span>
-<span id="cb10-432"><a href="#cb10-432" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb10-433"><a href="#cb10-433" aria-hidden="true" tabindex="-1"></a>            ell_df <span class="op">=</span> ellipse_boundary_df(df_tr[<span class="st">"COPx"</span>], df_tr[<span class="st">"COPy"</span>])</span>
-<span id="cb10-434"><a href="#cb10-434" aria-hidden="true" tabindex="-1"></a>            ax_bot.plot(ell_df[<span class="st">"ex"</span>], ell_df[<span class="st">"ey"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.9</span>, linewidth<span class="op">=</span><span class="fl">1.2</span>)</span>
-<span id="cb10-435"><a href="#cb10-435" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb10-436"><a href="#cb10-436" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_title(<span class="ss">f"Surface: </span><span class="sc">{</span>surf<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb10-437"><a href="#cb10-437" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_xlabel(<span class="st">"COPx (cm)"</span>)</span>
-<span id="cb10-438"><a href="#cb10-438" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> j <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb10-439"><a href="#cb10-439" aria-hidden="true" tabindex="-1"></a>            ax_bot.set_ylabel(<span class="st">"COPy (cm)"</span>)</span>
-<span id="cb10-440"><a href="#cb10-440" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Fixed: Changed adjustable='datalim' to 'box' to support shared axes</span></span>
-<span id="cb10-441"><a href="#cb10-441" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_aspect(<span class="st">"equal"</span>, adjustable<span class="op">=</span><span class="st">"box"</span>)</span>
-<span id="cb10-442"><a href="#cb10-442" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-443"><a href="#cb10-443" aria-hidden="true" tabindex="-1"></a>    fig.suptitle(<span class="ss">f"Subject </span><span class="sc">{</span>subject_id<span class="sc">}</span><span class="ss"> - QA Diagnostic</span><span class="ch">\n</span><span class="ss">Top: Cumulative Path | Bottom: Stabilogram &amp; 95% Ellipses"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb10-444"><a href="#cb10-444" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb10-445"><a href="#cb10-445" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span>
-<span id="cb10-446"><a href="#cb10-446" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-447"><a href="#cb10-447" aria-hidden="true" tabindex="-1"></a><span class="co"># Save all per-subject diagnostic PNGs</span></span>
-<span id="cb10-448"><a href="#cb10-448" aria-hidden="true" tabindex="-1"></a>os.makedirs(<span class="st">"./data/BDS/output/qa_plots"</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-449"><a href="#cb10-449" aria-hidden="true" tabindex="-1"></a>subject_ids <span class="op">=</span> master_aug[<span class="st">"Subject"</span>].unique()</span>
-<span id="cb10-450"><a href="#cb10-450" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-451"><a href="#cb10-451" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sid <span class="kw">in</span> subject_ids:</span>
-<span id="cb10-452"><a href="#cb10-452" aria-hidden="true" tabindex="-1"></a>    df_sub <span class="op">=</span> master_aug[master_aug[<span class="st">"Subject"</span>] <span class="op">==</span> sid]</span>
-<span id="cb10-453"><a href="#cb10-453" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> make_subject_qa_plot(sid, df_sub)</span>
-<span id="cb10-454"><a href="#cb10-454" aria-hidden="true" tabindex="-1"></a>    fig.savefig(<span class="ss">f"./data/BDS/output/qa_plots/subject_</span><span class="sc">{</span>sid<span class="sc">:03d}</span><span class="ss">_QA.png"</span>, dpi<span class="op">=</span><span class="dv">100</span>)</span>
-<span id="cb10-455"><a href="#cb10-455" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> sid <span class="op">!=</span> subject_ids[<span class="dv">0</span>]:</span>
-<span id="cb10-456"><a href="#cb10-456" aria-hidden="true" tabindex="-1"></a>        plt.close(fig)</span>
-<span id="cb10-457"><a href="#cb10-457" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-458"><a href="#cb10-458" aria-hidden="true" tabindex="-1"></a><span class="co"># Display Subject 1 in Quarto output</span></span>
-<span id="cb10-459"><a href="#cb10-459" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb10-460"><a href="#cb10-460" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-461"><a href="#cb10-461" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb10-401"><a href="#cb10-401" aria-hidden="true" tabindex="-1"></a>qa_log <span class="op">=</span> trial_summary[trial_summary[<span class="st">"flag_any"</span>]]</span>
+<span id="cb10-402"><a href="#cb10-402" aria-hidden="true" tabindex="-1"></a>qa_log.to_csv(<span class="st">"./data/BDS/output/qa_log.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-403"><a href="#cb10-403" aria-hidden="true" tabindex="-1"></a>trial_summary.to_csv(<span class="st">"./data/BDS/output/BDS_trial_summary.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-404"><a href="#cb10-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-405"><a href="#cb10-405" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Overview Outlier-Screening Figure</span></span>
+<span id="cb10-406"><a href="#cb10-406" aria-hidden="true" tabindex="-1"></a>overview_data <span class="op">=</span> trial_summary.melt(</span>
+<span id="cb10-407"><a href="#cb10-407" aria-hidden="true" tabindex="-1"></a>    id_vars<span class="op">=</span>[<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>],</span>
+<span id="cb10-408"><a href="#cb10-408" aria-hidden="true" tabindex="-1"></a>    value_vars<span class="op">=</span>[<span class="st">"PathLength_Total"</span>, <span class="st">"MeanVelocity_AP"</span>, <span class="st">"MeanVelocity_ML"</span>, <span class="st">"EllipseArea95"</span>],</span>
+<span id="cb10-409"><a href="#cb10-409" aria-hidden="true" tabindex="-1"></a>    var_name<span class="op">=</span><span class="st">"Measure"</span>, value_name<span class="op">=</span><span class="st">"Value"</span></span>
+<span id="cb10-410"><a href="#cb10-410" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-411"><a href="#cb10-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-412"><a href="#cb10-412" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> sns.catplot(</span>
+<span id="cb10-413"><a href="#cb10-413" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>overview_data, x<span class="op">=</span><span class="st">"Surface"</span>, y<span class="op">=</span><span class="st">"Value"</span>, hue<span class="op">=</span><span class="st">"Vision"</span>, col<span class="op">=</span><span class="st">"Measure"</span>,</span>
+<span id="cb10-414"><a href="#cb10-414" aria-hidden="true" tabindex="-1"></a>    col_wrap<span class="op">=</span><span class="dv">2</span>, kind<span class="op">=</span><span class="st">"box"</span>, height<span class="op">=</span><span class="fl">3.5</span>, aspect<span class="op">=</span><span class="fl">1.2</span>, sharey<span class="op">=</span><span class="va">False</span></span>
+<span id="cb10-415"><a href="#cb10-415" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-416"><a href="#cb10-416" aria-hidden="true" tabindex="-1"></a>g.fig.subplots_adjust(top<span class="op">=</span><span class="fl">0.9</span>)</span>
+<span id="cb10-417"><a href="#cb10-417" aria-hidden="true" tabindex="-1"></a>g.fig.suptitle(<span class="st">"Trial-level DV Distributions (Quality Assurance Overview)"</span>)</span>
+<span id="cb10-418"><a href="#cb10-418" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb10-419"><a href="#cb10-419" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-420"><a href="#cb10-420" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Per-Subject Diagnostic Figures with Faceting by Surface</span></span>
+<span id="cb10-421"><a href="#cb10-421" aria-hidden="true" tabindex="-1"></a>master_aug <span class="op">=</span> master.sort_values([<span class="st">"Trial"</span>, <span class="st">"Time"</span>]).copy()</span>
+<span id="cb10-422"><a href="#cb10-422" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"dx"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"COPx"</span>].diff().fillna(<span class="dv">0</span>)</span>
+<span id="cb10-423"><a href="#cb10-423" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"dy"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"COPy"</span>].diff().fillna(<span class="dv">0</span>)</span>
+<span id="cb10-424"><a href="#cb10-424" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"StepDist"</span>] <span class="op">=</span> np.sqrt(master_aug[<span class="st">"dx"</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> master_aug[<span class="st">"dy"</span>]<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb10-425"><a href="#cb10-425" aria-hidden="true" tabindex="-1"></a>master_aug[<span class="st">"CumulativePath"</span>] <span class="op">=</span> master_aug.groupby(<span class="st">"Trial"</span>)[<span class="st">"StepDist"</span>].cumsum()</span>
+<span id="cb10-426"><a href="#cb10-426" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-427"><a href="#cb10-427" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Rep indicator</span></span>
+<span id="cb10-428"><a href="#cb10-428" aria-hidden="true" tabindex="-1"></a>rep_df <span class="op">=</span> master_aug[[<span class="st">"Trial"</span>, <span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>]].drop_duplicates().sort_values([<span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>, <span class="st">"Trial"</span>])</span>
+<span id="cb10-429"><a href="#cb10-429" aria-hidden="true" tabindex="-1"></a>rep_df[<span class="st">"Rep"</span>] <span class="op">=</span> rep_df.groupby([<span class="st">"Subject"</span>, <span class="st">"Vision"</span>, <span class="st">"Surface"</span>]).cumcount() <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb10-430"><a href="#cb10-430" aria-hidden="true" tabindex="-1"></a>master_aug <span class="op">=</span> master_aug.merge(rep_df[[<span class="st">"Trial"</span>, <span class="st">"Rep"</span>]], on<span class="op">=</span><span class="st">"Trial"</span>)</span>
+<span id="cb10-431"><a href="#cb10-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-432"><a href="#cb10-432" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_subject_qa_plot(subject_id, df_sub):</span>
+<span id="cb10-433"><a href="#cb10-433" aria-hidden="true" tabindex="-1"></a>    fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="st">'row'</span>, sharey<span class="op">=</span><span class="st">'row'</span>)</span>
+<span id="cb10-434"><a href="#cb10-434" aria-hidden="true" tabindex="-1"></a>    palette <span class="op">=</span> {<span class="dv">1</span>: <span class="st">"#1E6654"</span>, <span class="dv">2</span>: <span class="st">"#CC5500"</span>, <span class="dv">3</span>: <span class="st">"#5B7C99"</span>}</span>
+<span id="cb10-435"><a href="#cb10-435" aria-hidden="true" tabindex="-1"></a>    surfaces <span class="op">=</span> [<span class="st">"Firm"</span>, <span class="st">"Foam"</span>]</span>
+<span id="cb10-436"><a href="#cb10-436" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-437"><a href="#cb10-437" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j, surf <span class="kw">in</span> <span class="bu">enumerate</span>(surfaces):</span>
+<span id="cb10-438"><a href="#cb10-438" aria-hidden="true" tabindex="-1"></a>        df_surf <span class="op">=</span> df_sub[df_sub[<span class="st">"Surface"</span>] <span class="op">==</span> surf]</span>
+<span id="cb10-439"><a href="#cb10-439" aria-hidden="true" tabindex="-1"></a>        ax_top <span class="op">=</span> axes[<span class="dv">0</span>, j]</span>
+<span id="cb10-440"><a href="#cb10-440" aria-hidden="true" tabindex="-1"></a>        ax_bot <span class="op">=</span> axes[<span class="dv">1</span>, j]</span>
+<span id="cb10-441"><a href="#cb10-441" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-442"><a href="#cb10-442" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Top Panel: Cumulative Path (Faceted by Surface)</span></span>
+<span id="cb10-443"><a href="#cb10-443" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (tr, rep, vis), df_tr <span class="kw">in</span> df_surf.groupby([<span class="st">"Trial"</span>, <span class="st">"Rep"</span>, <span class="st">"Vision"</span>], observed<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb10-444"><a href="#cb10-444" aria-hidden="true" tabindex="-1"></a>            ls <span class="op">=</span> <span class="st">"-"</span> <span class="cf">if</span> vis <span class="op">==</span> <span class="st">"Open"</span> <span class="cf">else</span> <span class="st">"--"</span></span>
+<span id="cb10-445"><a href="#cb10-445" aria-hidden="true" tabindex="-1"></a>            c <span class="op">=</span> palette[rep]</span>
+<span id="cb10-446"><a href="#cb10-446" aria-hidden="true" tabindex="-1"></a>            ax_top.plot(df_tr[<span class="st">"Time"</span>], df_tr[<span class="st">"CumulativePath"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb10-447"><a href="#cb10-447" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-448"><a href="#cb10-448" aria-hidden="true" tabindex="-1"></a>        ax_top.set_title(<span class="ss">f"Surface: </span><span class="sc">{</span>surf<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-449"><a href="#cb10-449" aria-hidden="true" tabindex="-1"></a>        ax_top.set_xlabel(<span class="st">"Time (s)"</span>)</span>
+<span id="cb10-450"><a href="#cb10-450" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> j <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb10-451"><a href="#cb10-451" aria-hidden="true" tabindex="-1"></a>            ax_top.set_ylabel(<span class="st">"Cumulative path (cm)"</span>)</span>
+<span id="cb10-452"><a href="#cb10-452" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb10-453"><a href="#cb10-453" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Bottom Panel: Stabilogram + 95% Ellipses (Faceted by Surface)</span></span>
+<span id="cb10-454"><a href="#cb10-454" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (tr, rep, vis), df_tr <span class="kw">in</span> df_surf.groupby([<span class="st">"Trial"</span>, <span class="st">"Rep"</span>, <span class="st">"Vision"</span>], observed<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb10-455"><a href="#cb10-455" aria-hidden="true" tabindex="-1"></a>            ls <span class="op">=</span> <span class="st">"-"</span> <span class="cf">if</span> vis <span class="op">==</span> <span class="st">"Open"</span> <span class="cf">else</span> <span class="st">"--"</span></span>
+<span id="cb10-456"><a href="#cb10-456" aria-hidden="true" tabindex="-1"></a>            c <span class="op">=</span> palette[rep]</span>
+<span id="cb10-457"><a href="#cb10-457" aria-hidden="true" tabindex="-1"></a>            ax_bot.plot(df_tr[<span class="st">"COPx"</span>], df_tr[<span class="st">"COPy"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.3</span>, linewidth<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb10-458"><a href="#cb10-458" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb10-459"><a href="#cb10-459" aria-hidden="true" tabindex="-1"></a>            ell_df <span class="op">=</span> ellipse_boundary_df(df_tr[<span class="st">"COPx"</span>], df_tr[<span class="st">"COPy"</span>])</span>
+<span id="cb10-460"><a href="#cb10-460" aria-hidden="true" tabindex="-1"></a>            ax_bot.plot(ell_df[<span class="st">"ex"</span>], ell_df[<span class="st">"ey"</span>], linestyle<span class="op">=</span>ls, color<span class="op">=</span>c, alpha<span class="op">=</span><span class="fl">0.9</span>, linewidth<span class="op">=</span><span class="fl">1.2</span>)</span>
+<span id="cb10-461"><a href="#cb10-461" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb10-462"><a href="#cb10-462" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_title(<span class="ss">f"Surface: </span><span class="sc">{</span>surf<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-463"><a href="#cb10-463" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_xlabel(<span class="st">"COPx (cm)"</span>)</span>
+<span id="cb10-464"><a href="#cb10-464" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> j <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb10-465"><a href="#cb10-465" aria-hidden="true" tabindex="-1"></a>            ax_bot.set_ylabel(<span class="st">"COPy (cm)"</span>)</span>
+<span id="cb10-466"><a href="#cb10-466" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Fixed: Changed adjustable='datalim' to 'box' to support shared axes</span></span>
+<span id="cb10-467"><a href="#cb10-467" aria-hidden="true" tabindex="-1"></a>        ax_bot.set_aspect(<span class="st">"equal"</span>, adjustable<span class="op">=</span><span class="st">"box"</span>)</span>
+<span id="cb10-468"><a href="#cb10-468" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-469"><a href="#cb10-469" aria-hidden="true" tabindex="-1"></a>    fig.suptitle(<span class="ss">f"Subject </span><span class="sc">{</span>subject_id<span class="sc">}</span><span class="ss"> - QA Diagnostic</span><span class="ch">\n</span><span class="ss">Top: Cumulative Path | Bottom: Stabilogram &amp; 95% Ellipses"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb10-470"><a href="#cb10-470" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb10-471"><a href="#cb10-471" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span>
+<span id="cb10-472"><a href="#cb10-472" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-473"><a href="#cb10-473" aria-hidden="true" tabindex="-1"></a><span class="co"># Save all per-subject diagnostic PNGs</span></span>
+<span id="cb10-474"><a href="#cb10-474" aria-hidden="true" tabindex="-1"></a>os.makedirs(<span class="st">"./data/BDS/output/qa_plots"</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-475"><a href="#cb10-475" aria-hidden="true" tabindex="-1"></a>subject_ids <span class="op">=</span> master_aug[<span class="st">"Subject"</span>].unique()</span>
+<span id="cb10-476"><a href="#cb10-476" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-477"><a href="#cb10-477" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sid <span class="kw">in</span> subject_ids:</span>
+<span id="cb10-478"><a href="#cb10-478" aria-hidden="true" tabindex="-1"></a>    df_sub <span class="op">=</span> master_aug[master_aug[<span class="st">"Subject"</span>] <span class="op">==</span> sid]</span>
+<span id="cb10-479"><a href="#cb10-479" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> make_subject_qa_plot(sid, df_sub)</span>
+<span id="cb10-480"><a href="#cb10-480" aria-hidden="true" tabindex="-1"></a>    fig.savefig(<span class="ss">f"./data/BDS/output/qa_plots/subject_</span><span class="sc">{</span>sid<span class="sc">:03d}</span><span class="ss">_QA.png"</span>, dpi<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb10-481"><a href="#cb10-481" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> sid <span class="op">!=</span> subject_ids[<span class="dv">0</span>]:</span>
+<span id="cb10-482"><a href="#cb10-482" aria-hidden="true" tabindex="-1"></a>        plt.close(fig)</span>
+<span id="cb10-483"><a href="#cb10-483" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-484"><a href="#cb10-484" aria-hidden="true" tabindex="-1"></a><span class="co"># Display Subject 1 in Quarto output</span></span>
+<span id="cb10-485"><a href="#cb10-485" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb10-486"><a href="#cb10-486" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-487"><a href="#cb10-487" aria-hidden="true" tabindex="-1"></a>:::</span>
 </code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>The DAPR Center is supported by an NIH P50 Medical Rehabilitation Research Resource award (P50HD118603).</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p><img src="images/nichd_logo.png" alt="Logo" height="50px"></p>
+</div>
+  </div>
+</footer>
 
 
 

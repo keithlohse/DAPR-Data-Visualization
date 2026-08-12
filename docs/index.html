@@ -200,9 +200,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction-setup" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction &amp; Setup</h1>
-<p>This guidebook is intended to teach the fundamentals of data management and data visualization using R and Python. The guide was created and is maintained by the Data Science and Analytics for Precision Rehabilitation (DAPR) Center, funded by the Eunice Kennedy Shriver National Institute of Child Health and Human Development (P50-HD118603). The original code was written by KRL in R with a rough draft in Python, Google Gemini 3.6 was then used to troubleshoot Python code and bundle all scripts as a Quarto Notebook. Accuracy of all final code was confirmed and didactic comments added by KRL.</p>
-<p>The guide walks through basic steps of data management - such importing data, merging files, and calculating variables - to data visualizaton for different purposed - from basic figures for quality assurance, to static figures to publication, to interactive and animated figures.</p>
+<p>This guidebook is intended to teach the fundamentals of data management and data visualization using R and Python. The guide was created and is maintained by the Data Science and Analytics for Precision Rehabilitation (DAPR) Center, funded by the Eunice Kennedy Shriver National Institute of Child Health and Human Development (P50-HD118603). The original code was written by KRL in R with a rough draft in Python. Google Gemini 3.6 was then used to troubleshoot Python code and bundle all scripts as a Quarto Notebook. Accuracy of all final code was confirmed and didactic comments added by KRL.</p>
+<p>The guide walks through basic steps of data management - such importing data, merging files, and calculating variables - to data visualizaton for different purposes - from basic figures for quality assurance, to static figures to publication, to interactive and animated figures.</p>
 <p>As our example data set, we will use the openly available Balance Data Set (BDS) from Santos &amp; Duarte (2016). In this study, N=163 younger and older adults stood on a force plate under two different visual conditions (eyes open versus eyes closed) and on two different surfaces (a firm surface and a foam surface) for three trials in each condition (making 12 total trials per participant). Each trial lasted 60 seconds and force plate data were sampled at 100 Hz. This gives us an incredibly rich data set for learning how to manage and visualize data in the rehabilitation sciences (e.g., 163 people x 12 trials x 60 secs x 100 samples per second x 3 different force plate axes).</p>
+<p><strong>Note that our data differ from the original Santos &amp; Duarte (2016) dataset.</strong> The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented here are for teaching purposes only and we explicit do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.</p>
 
 
 <!-- -->
@@ -687,15 +688,29 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introduction &amp; Setup</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>This guidebook is intended to teach the fundamentals of data management and data visualization using R and Python. The guide was created and is maintained by the Data Science and Analytics for Precision Rehabilitation (DAPR) Center, funded by the Eunice Kennedy Shriver National Institute of Child Health and Human Development (P50-HD118603). The original code was written by KRL in R with a rough draft in Python, Google Gemini 3.6 was then used to troubleshoot Python code and bundle all scripts as a Quarto Notebook. Accuracy of all final code was confirmed and didactic comments added by KRL. </span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>This guidebook is intended to teach the fundamentals of data management and data visualization using R and Python. The guide was created and is maintained by the Data Science and Analytics for Precision Rehabilitation (DAPR) Center, funded by the Eunice Kennedy Shriver National Institute of Child Health and Human Development (P50-HD118603). The original code was written by KRL in R with a rough draft in Python. Google Gemini 3.6 was then used to troubleshoot Python code and bundle all scripts as a Quarto Notebook. Accuracy of all final code was confirmed and didactic comments added by KRL. </span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>The guide walks through basic steps of data management - such importing data, merging files, and calculating variables - to data visualizaton for different purposed - from basic figures for quality assurance, to static figures to publication, to interactive and animated figures. </span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>The guide walks through basic steps of data management - such importing data, merging files, and calculating variables - to data visualizaton for different purposes - from basic figures for quality assurance, to static figures to publication, to interactive and animated figures. </span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>As our example data set, we will use the openly available Balance Data Set (BDS) from Santos &amp; Duarte (2016). In this study, N=163 younger and older adults stood on a force plate under two different visual conditions (eyes open versus eyes closed) and on two different surfaces (a firm surface and a foam surface) for three trials in each condition (making 12 total trials per participant). Each trial lasted 60 seconds and force plate data were sampled at 100 Hz. This gives us an incredibly rich data set for learning how to manage and visualize data in the rehabilitation sciences (e.g., 163 people x 12 trials x 60 secs x 100 samples per second x 3 different force plate axes).   </span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>**Note that our data differ from the original Santos &amp; Duarte (2016) dataset.** The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented here are for teaching purposes only and we explicit do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes. </span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>The DAPR Center is supported by an NIH P50 Medical Rehabilitation Research Resource award (P50HD118603).</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p><img src="images/nichd_logo.png" alt="Logo" height="50px"></p>
+</div>
+  </div>
+</footer>
 
 
 

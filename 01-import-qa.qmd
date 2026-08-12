@@ -6,7 +6,7 @@ subtitle: "A Parallel Guide in R and Python"
 
 # Import and Merge Data
 
-As mentioned above, we will be using the data from this study by Santos & Duarte (2016): 
+As mentioned before, we will be using the data from this study by Santos & Duarte (2016): 
 https://peerj.com/articles/2648/ . If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data. 
 
 If you do download the data, please save it in this structure:
@@ -26,7 +26,16 @@ YOUR_FOLDER_HERE/               # Name of the project folder on your local compu
         
         
 ```
+**Note that our data differ from the original Santos & Duarte (2016) dataset.** The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented below are for teaching purposes only and we explicitly do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.
 
+
+In the code chunks below, you can toggle between the `R` and `Python` implementations. We have tried to keep these code as similar as possible between the two languages, but it is important to remember that:
+
+1. There is never only one way to things in programming, although some ways are better than others (and we try to show only "good" ways).
+
+2. Each programming language is different. So, even though we try to keep the code as structurally similar as possible, there often won't be a one-to-one translation between languages. 
+
+In the chunks below, we show the structure of the "raw" data after they have been merged into one master data files (rather than individual .csv files for every subject on every trial). 
 
 ::: panel-tabset
 ## R (`tidyverse` & `data.table`)
@@ -117,11 +126,28 @@ master.info()
 ```
 :::
 
+The first few columns track **structural** information about how these data are 
+organized:
+
+* `Trial` - the trial number which was used to index the original raw data files.
+* `Subject` - the unique subject identification number, each subject has ~4 trials and ~60s worth of data per trial.
+* `Vision` - was the trial completed with eyes open or eyes closed.
+* `Surface` - was the trial completed on a firm surface or a foam surface.
+* `Time` - time, in seconds, within each trial. Trials were, in general, 60s long.     
+
+... and the last few columns are the key dependent variables tracked continuously throughout each trial:
+
+* `Fx`, `Fy`, and `Fz` - force in each plane of the force plate. 
+* `Mx`, `My`, and `Mz` - moment arms corresponding to the forces in each plane.
+* `CoPx` and `CoPy` - the center of pressure as a point, in the x- and y-planes of force plate, calculated from the preceding forces and moment arms. 
+
+
+
 ------------------------------------------------------------------------
 
 # Quality Assurance & Feature Extraction
 
-From raw Center of Pressure (COP) time-series data $(COP_x, COP_y)$, we extract key biomechanical features:
+From raw Center of Pressure (COP) time-series data $(COP_x, COP_y)$, we will calculate key biomechanical variables that a researcher might be interested in:
 
 1. **Path Lengths**: Sum of absolute step distances across axes:
    $$\text{PathLength}_{\text{AP}} = \sum_{n=1}^{N-1} |COP_{y, n+1} - COP_{y, n}|$$

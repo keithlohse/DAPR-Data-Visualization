@@ -18,7 +18,10 @@ website:
         file: 03-interactive-plots.qmd
       - text: "4. Animated Plots"
         file: 04-animated-plots.qmd
-
+  page-footer:
+    left: "The DAPR Center is supported by an NIH P50 Medical Rehabilitation Research Resource award (P50HD118603)."
+    right: "<img src='images/nichd_logo.png' alt='Logo' height='50px'>"
+        
 format:
   html:
     theme: cosmo
