@@ -13,7 +13,7 @@ In this section, we walk through the iterative process of building data visualiz
 
 We begin by mapping `Surface` condition to the x-axis and `PathLength_Total` to the y-axis. This raw point plot reveals the basic distribution of data but suffers from heavy overplotting across conditions.
 
-It is worth noting that `plotnine` is a package for Python that uses syntax essentially identical to `ggplot` in R (both `plotnine` and `ggplot` are based on Leland Wilkinson’s "Grammar of Graphics" - a layered system to build data visualizations). However, when making this document using *Quarto* inside of *R Studio*, I need to call Python functions using `reticulate` and - for computing reasons I do not full understand - it is difficult to render `plotnine` objects through `reticulate`. Thus, for these examples, I am using `matplotlib` and `seaborn` to great plots similar to my `ggplot` visualizations, but for pragmatic users, it is probably more efficient to learn `ggplot`/`plotnine` syntax that is portable across languages.
+It is worth noting that `plotnine` is a package for Python that uses syntax essentially identical to `ggplot` in R (both `plotnine` and `ggplot` are based on Leland Wilkinson’s "Grammar of Graphics" - a layered system to build data visualizations). However, when making this document using *Quarto* inside of *R Studio*, I need to call Python functions using `reticulate` and - for computing reasons I do not fully understand - it is difficult to render `plotnine` objects through `reticulate`. Thus, for these examples, I am using `matplotlib` and `seaborn` to great plots similar to my `ggplot` visualizations, but for pragmatic users, it is probably more efficient to learn `ggplot`/`plotnine` syntax that is portable across languages.
 
 ::: {.panel-tabset}
 ## R (`ggplot2`)
@@ -167,7 +167,7 @@ plt.show()
 
 ---
 
-## Step 4: Subject Aggregation & Visual Polish
+## Step 4: Subject Aggregation and Adding Plot Features
 
 Because individual trials introduce nested variance, we aggregate data to subject-level means (`AVE_DATA`). We also refine labels, typography, and legend positioning to polish the figure.
 
@@ -253,7 +253,7 @@ plt.show()
 
 ## Step 5: Visualizing Within-Subject Trajectories
 
-To show individual changes across conditions, we facet by `Surface` and connect subject points from `Open` to `Closed` vision conditions using light gray trajectory lines.
+In this study, `Surface` and `Vision` are manipulated within a person (i.e., the are both within-subject variables). A critical peace of information in these studies is how consistent participants are in their individal responses (i.e., does the same person tend to score high/low across conditions). Mathematically, we might calculate an intraclass correlation coefficiant to capture how (dis)similar data from the same person happen to be. Visually, we can add lines to our plot "connecting the dots" for data from the same person. To show individual changes across conditions, we facet by `Surface` and connect subject points from `Open` to `Closed` vision conditions using light gray trajectory lines.
 
 ::: {.panel-tabset}
 ## R (`ggplot2`)
@@ -427,7 +427,9 @@ plt.show()
 
 ## Step 7: Multivariate Correlation Matrix
 
-To examine multicollinearity among extracted postural metrics across age groups, we build a scatterplot matrix containing bivariate scatter plots (lower triangle), density distributions (diagonal), and correlation coefficients (upper triangle).
+One great feature of programmatic approaches to data visualization is that there are many complex, but relatively common data visualizations that you might want to make. It is often too time consuming to make all of these figures completely from scratch, but fortunately there are many software packages/functions that other people have built that you can readily use. As an example, we will build a multifaceted plot to show the correlations between a set of variables. Visualizing this kind of correlation matrix comes up all the time in data analysis projects - whether you are exploring the data or formally checking mutlicolinearity before building a regression model - so it is a good example to start with here. 
+
+To examine all the correlations between our postural metrics across age groups, we build a scatterplot matrix containing bivariate scatter plots comparing each variable to every other variable (lower triangle), density distributions for each variable on its own (diagonal), and correlation coefficients (upper triangle).
 
 ::: {.panel-tabset}
 ## R (`GGally`)
@@ -489,7 +491,9 @@ plt.show()
 
 ## Step 8: Multi-Panel Publication Composite Layout
 
-Finally, we arrange distinct figure types into a multi-panel layout:
+Finally, another common issue that arises in practice is the need to "stitch" multiple panels together into a single figure. People often do this manually using tools like the [Gnu Image Manipulation Program](https://www.gimp.org/) or [Inkscape](https://inkscape.org/) (which are open source competitors of tools like [Photoshop or Illustrator](https://www.adobe.com)). It is completely fine to export images into another program to manage/fine tune your layout. However, there are tools in `R` and `Python` that allow you to make these kinds of multi-panelled figures. These are great tools to learn because it makes you projects more efficient (e.g., from reading in the data to analysis to final publication-ready figures, you can do it all in one place!). 
+
+In the code below, we arrange a few distinct figure types into a multi-panel layout:
 * **Panel A**: Age distribution histogram.
 * **Panel B**: Directional path length scatter plot ($\text{PathLength}_{\text{ML}}$ vs $\text{PathLength}_{\text{AP}}$) with confidence ellipses.
 * **Panel C**: Total path length density distributions by condition faceted across age groups.

@@ -6,8 +6,7 @@ subtitle: "A Parallel Guide in R and Python"
 
 # Import and Merge Data
 
-As mentioned before, we will be using the data from this study by Santos & Duarte (2016): 
-https://peerj.com/articles/2648/ . If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data. 
+As mentioned before, we will be using the data from this study by [Santos & Duarte (2016)](https://peerj.com/articles/2648/). If you want to run the code below on your local machine, please follow the links in their PeerJ article to download their data from FigShare. Alternatively, if you just want to follow along with the code, you can see all of the code, outputs, and figures below without having to download any data. 
 
 If you do download the data, please save it in this structure:
 
@@ -26,10 +25,9 @@ YOUR_FOLDER_HERE/               # Name of the project folder on your local compu
         
         
 ```
-**Note that our data differ from the original Santos & Duarte (2016) dataset.** The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, however, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented below are for teaching purposes only and we explicitly do not make the raw data available to avoid confusion. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.
+**Note that our data differ from the original Santos & Duarte (2016) dataset.** The original data were collected and processed to a very high standard to maximize their utility for biomechanics researchers. Because we want to use these data for teaching purposes, we manipulated some of the original data to introduce artifacts and other types of errors that we want to catch in our pipeline. Thus, the data presented below are for teaching purposes only and we explicitly do not make the "doctored" data available to avoid confusion with the original dataset. If readers are interested in following along step by step, they should download the original data from their source, but remember that those data will not include the errors we built in for teaching purposes.
 
-
-In the code chunks below, you can toggle between the `R` and `Python` implementations. We have tried to keep these code as similar as possible between the two languages, but it is important to remember that:
+In the code chunks below, you can toggle between the `R` and `Python` implementations. We have tried to keep the code as similar as possible between the two languages, but it is important to remember that:
 
 1. There is never only one way to things in programming, although some ways are better than others (and we try to show only "good" ways).
 
@@ -43,8 +41,6 @@ In the chunks below, we show the structure of the "raw" data after they have bee
 ```{r}
 #| label: script00-r
 library(reticulate)
-use_condaenv("r-reticulate", required = TRUE)
-
 library(tidyverse)
 library(data.table)
 library(arrow)
@@ -91,6 +87,7 @@ glimpse(master)
 
 ```{python}
 #| label: script00-python
+import sys
 import glob
 import os
 import pandas as pd
@@ -156,6 +153,20 @@ From raw Center of Pressure (COP) time-series data $(COP_x, COP_y)$, we will cal
 2. **95% Confidence Ellipse Area & Boundary**:
    $$\text{Area}_{95} = 2 \pi F_{0.95, 2, N-2} \sqrt{\lambda_1 \lambda_2}$$
    where $\lambda_1, \lambda_2$ are eigenvalues of the $(COP_x, COP_y)$ covariance matrix.
+   
+3. **Mean Velocity**: The average of the change in center of pressure in anterior-posterior (AP) and medial-lateral (ML) axes separately. 
+   
+Before visualizing these features, we also flag a few common structural and signal-level problems that occur in this kind of research. Each flag targets a different stage where something can go wrong:
+
+* **`flag_sample_count`** -- does this trial have roughly the expected number of samples? Trials were meant to run 60s at 100Hz (6,000 samples), so we compare each trial's row count to the *modal* count across all trials and flag anything off by more than 10 samples. This is a **completeness** check: did the recording actually capture the full trial, or did it start late, end early, or get truncated when the file was written to disk?
+* **`flag_time_gap`** -- within a trial, does `Time` advance smoothly at the expected ~0.01s interval, with no backward jumps or repeats? This is a **temporal integrity** check: it catches dropped samples or corrupted timestamps. This matters more than it might seem, because path-length and velocity are both computed from *consecutive-sample differences* -- a silent gap in time doesn't just look wrong, it quietly inflates those estimates without ever producing an obviously "broken" value.
+* **`flag_fz_unweighting`** -- does the vertical force (`Fz`) ever drop well below what's typical for that trial? `Fz` roughly tracks how much of the participant's body weight is loading the plate, so a sustained drop below 70% of the trial's median suggests the participant wasn't fully weight-bearing for part of the trial -- a partial step off, a hand momentarily on a rail, or (especially relevant in older or clinical populations) a spotter briefly providing support. Unlike the first two flags, this one isn't about the *recording* -- it's about whether the trial was *performed* the way the protocol intended.
+
+We combine these into a single `flag_any` column so we have one place to filter for problem trials.
+
+Errors like these are common in this kind of research simply because of scale: a large postural-sway study generates many independently-recorded, largely unattended trials -- here, 163 participants x 12 trials each -- and at that volume, rare per-trial failure rates become *guaranteed* somewhere in the dataset. Hardware and software issues (a force plate briefly losing connection, a buffer overflow, a file that didn't finish writing) and participant/protocol issues (stepping off the plate, needing brief physical support) are each individually uncommon but collectively inevitable across thousands of trials -- which is exactly why we build automated checks into the pipeline rather than relying on a raw export being clean.
+
+In the plots below, we show how we can visualize "trial-level" data, calculated across all 60s in each trial, in each condition. This is a high-level summary plot that allows you to visualize data from many different participants at once. This kind of plot would be useful identifying influential participants who do not fit general patterns and may even be considered "outliers". For instance, only one participant has a total path length over 600 in the eyes closed/foam surface condition. It would be worth checking notes from the data collection to see if there was an anomaly in the testing that might explain why this person is a statistical outlier. Broadly, we do not recommend removing outliers for statistical reasons alone (e.g., there will always be an extreme 1%, so we cannot remove it for its extreme-ness alone), but identifying statistical outliers is often a useful first step in ensuring data quality.
 
 ::: {.panel-tabset}
 ## R (`tidyverse` & `patchwork`)
@@ -266,66 +277,8 @@ p_overview <- ggplot(overview_data, aes(x = Surface, y = Value, fill = Vision)) 
   labs(title = "Trial-level DV Distributions (Quality Assurance Overview)", y = NULL)
 
 print(p_overview)
-
-# 4. Per-Subject Diagnostic Figures (Cumulative Path + 95% Ellipses)
-master_aug <- master %>%
-  arrange(Trial, Time) %>%
-  group_by(Trial) %>%
-  mutate(
-    StepDist       = sqrt(c(0, diff(COPx))^2 + c(0, diff(COPy))^2),
-    CumulativePath = cumsum(StepDist)
-  ) %>%
-  ungroup()
-
-rep_lookup <- master_aug %>%
-  distinct(Trial, Subject, Vision, Surface) %>%
-  arrange(Subject, Vision, Surface, Trial) %>%
-  group_by(Subject, Vision, Surface) %>%
-  mutate(Rep = factor(row_number())) %>%
-  ungroup() %>%
-  select(Trial, Rep)
-
-master_aug <- master_aug %>% left_join(rep_lookup, by = "Trial")
-
-make_subject_qa_plot <- function(subject_id, df) {
-  p_top <- ggplot(df, aes(x = Time, y = CumulativePath, group = Trial, color = Rep, linetype = Vision)) +
-    geom_line(linewidth = 0.4) +
-    facet_wrap(~ Surface) +
-    labs(title = paste("Subject", subject_id, "- QA Diagnostic"),
-         subtitle = "Cumulative COP Path Length (slope ~ velocity; jumps -> possible artifact)",
-         x = "Time (s)", y = "Cumulative path (cm)") +
-    theme_minimal(base_size = 9)
-  
-  ellipses <- df %>%
-    group_by(Trial, Vision, Surface, Rep) %>%
-    group_modify(~ ellipse_boundary_df(.x$COPx, .x$COPy)) %>%
-    ungroup()
-  
-  p_bottom <- ggplot(df, aes(x = COPx, y = COPy, group = Trial, color = Rep, linetype = Vision)) +
-    geom_path(linewidth = 0.3, alpha = 0.5) +
-    geom_path(data = ellipses, aes(x = ex, y = ey, group = Trial), linewidth = 0.5, alpha = 0.9) +
-    facet_wrap(~ Surface) +
-    coord_equal() +
-    labs(subtitle = "Stabilogram with 95% Confidence Ellipses", x = "COPx (cm)", y = "COPy (cm)") +
-    theme_minimal(base_size = 9)
-  
-  (p_top / p_bottom) + plot_layout(guides = "collect")
-}
-
-# Save per-subject plots to directory and display Subject 1 as example
-qa_dir <- "./data/BDS/output/qa_plots"
-dir.create(qa_dir, recursive = TRUE, showWarnings = FALSE)
-
-subject_ids <- unique(master_aug$Subject)
-for (sid in subject_ids) {
-  df_sub <- master_aug %>% filter(Subject == sid)
-  p <- make_subject_qa_plot(sid, df_sub)
-  ggsave(file.path(qa_dir, sprintf("subject_%03d_QA.png", sid)), p, width = 8, height = 9, dpi = 100)
-}
-
-# Display Subject 1 in document
-make_subject_qa_plot(subject_ids[1], master_aug %>% filter(Subject == subject_ids[1]))
 ```
+
 
 ## Python (`numpy`, `scipy` & `matplotlib`)
 
@@ -409,72 +362,239 @@ g.fig.subplots_adjust(top=0.9)
 g.fig.suptitle("Trial-level DV Distributions (Quality Assurance Overview)")
 plt.show()
 
-# 4. Per-Subject Diagnostic Figures with Faceting by Surface
+```
+:::
+
+Next, we show a quality assurance graphic that we might make for a single subject. This graphic shows what is happening on a "trial-level" within a given subject, e.g., cumulative path length for the CoP and two dimensional area of CoP dispersion over time.
+
+Rather than rebuilding this augmented dataset and re-looping over all 163 subjects twice (once to illustrate a "clean" subject, once to illustrate a subject with built-in errors), we do the expensive part **once**, in a single prep step below. That step (1) builds `master_aug` and the per-trial `Rep` indicator, (2) splits the data by subject *once* instead of re-filtering the full ~11-million-row table on every subject, and (3) writes one diagnostic PNG per subject to disk -- but only for subjects whose PNG doesn't already exist.
+
+::: {.panel-tabset}
+## R (`tidyverse` & `patchwork`)
+
+```{r}
+#| label: script01-qaPrep-r
+
+# 4. Per-Subject Diagnostic Figures (Cumulative Path + 95% Ellipses)
+# --- one-time setup, shared by every subject we display below ---
+master_aug <- master %>%
+  arrange(Trial, Time) %>%
+  group_by(Trial) %>%
+  mutate(
+    StepDist       = sqrt(c(0, diff(COPx))^2 + c(0, diff(COPy))^2),
+    CumulativePath = cumsum(StepDist)
+  ) %>%
+  ungroup()
+
+rep_lookup <- master_aug %>%
+  distinct(Trial, Subject, Vision, Surface) %>%
+  arrange(Subject, Vision, Surface, Trial) %>%
+  group_by(Subject, Vision, Surface) %>%
+  mutate(Rep = factor(row_number())) %>%
+  ungroup() %>%
+  select(Trial, Rep)
+
+master_aug <- master_aug %>% left_join(rep_lookup, by = "Trial")
+
+# Split ONCE into a named list keyed by Subject. This replaces the old
+# pattern of calling filter(Subject == sid) inside a 163-iteration loop,
+# which re-scanned the full 11M-row table on every iteration.
+subject_data <- split(master_aug, master_aug$Subject)
+
+make_subject_qa_plot <- function(subject_id, df) {
+  p_top <- ggplot(df, aes(x = Time, y = CumulativePath, group = Trial, color = Rep, linetype = Vision)) +
+    geom_line(linewidth = 0.4) +
+    facet_wrap(~ Surface) +
+    labs(title = paste("Subject", subject_id, "- QA Diagnostic"),
+         subtitle = "Cumulative COP Path Length (slope ~ velocity; jumps -> possible artifact)",
+         x = "Time (s)", y = "Cumulative path (cm)") +
+    theme_minimal(base_size = 9)
+
+  ellipses <- df %>%
+    group_by(Trial, Vision, Surface, Rep) %>%
+    group_modify(~ ellipse_boundary_df(.x$COPx, .x$COPy)) %>%
+    ungroup()
+
+  p_bottom <- ggplot(df, aes(x = COPx, y = COPy, group = Trial, color = Rep, linetype = Vision)) +
+    geom_path(linewidth = 0.3, alpha = 0.5) +
+    geom_path(data = ellipses, aes(x = ex, y = ey, group = Trial), linewidth = 0.5, alpha = 0.9) +
+    facet_wrap(~ Surface) +
+    coord_equal() +
+    labs(subtitle = "Stabilogram with 95% Confidence Ellipses", x = "COPx (cm)", y = "COPy (cm)") +
+    theme_minimal(base_size = 9)
+
+  (p_top / p_bottom) + plot_layout(guides = "collect")
+}
+
+# Save one diagnostic PNG per subject -- skip any that already exist on disk.
+qa_dir <- "./data/BDS/output/qa_plots"
+dir.create(qa_dir, recursive = TRUE, showWarnings = FALSE)
+
+for (sid in names(subject_data)) {
+  out_file <- file.path(qa_dir, sprintf("subject_%03d_QA.png", as.integer(sid)))
+  if (!file.exists(out_file)) {
+    p <- make_subject_qa_plot(sid, subject_data[[sid]])
+    ggsave(out_file, p, width = 8, height = 9, dpi = 100)
+  }
+}
+
+# The two subjects we spotlight below: the first ("clean") and the last
+# ("built-in errors") subject in the sorted subject list.
+good_subject_id <- sort(unique(master_aug$Subject))[1]
+bad_subject_id  <- sort(unique(master_aug$Subject))[163]
+```
+
+## Python (`numpy`, `scipy` & `matplotlib`)
+
+```{python}
+#| label: script01-qaPrep-python
+
+import os
+import numpy as np
+import pandas as pd
+from scipy.stats import f
+import matplotlib.pyplot as plt
+
+# --- one-time setup, shared by every subject we display below ---
+master = pd.read_parquet("./data/BDS/output/BDS_master.parquet")
+
+def compute_ellipse95(x, y):
+    n = len(x)
+    cov_mat = np.cov(x, y)
+    eigvals, eigvecs = np.linalg.eigh(cov_mat)
+    f_val = f.ppf(0.95, 2, n - 2)
+    area = 2 * np.pi * f_val * np.sqrt(np.maximum(0, eigvals[0] * eigvals[1]))
+    return area, eigvals, eigvecs, f_val, np.mean(x), np.mean(y)
+
+def ellipse_boundary_df(x, y, n_points=100):
+    area, eigvals, eigvecs, f_val, cx, cy = compute_ellipse95(x, y)
+    axis_lengths = np.sqrt(2 * f_val * np.maximum(0, eigvals))
+    theta = np.linspace(0, 2 * np.pi, n_points)
+    circle = np.vstack([np.cos(theta), np.sin(theta)])
+    pts = eigvecs @ np.diag(axis_lengths) @ circle
+    return pd.DataFrame({'ex': cx + pts[0, :], 'ey': cy + pts[1, :]})
+
 master_aug = master.sort_values(["Trial", "Time"]).copy()
 master_aug["dx"] = master_aug.groupby("Trial")["COPx"].diff().fillna(0)
 master_aug["dy"] = master_aug.groupby("Trial")["COPy"].diff().fillna(0)
 master_aug["StepDist"] = np.sqrt(master_aug["dx"]**2 + master_aug["dy"]**2)
 master_aug["CumulativePath"] = master_aug.groupby("Trial")["StepDist"].cumsum()
 
-# Add Rep indicator
 rep_df = master_aug[["Trial", "Subject", "Vision", "Surface"]].drop_duplicates().sort_values(["Subject", "Vision", "Surface", "Trial"])
 rep_df["Rep"] = rep_df.groupby(["Subject", "Vision", "Surface"]).cumcount() + 1
 master_aug = master_aug.merge(rep_df[["Trial", "Rep"]], on="Trial")
+
+# Split ONCE into a dict keyed by Subject. This replaces the old pattern
+# of masking master_aug[master_aug["Subject"] == sid] inside a
+# 163-iteration loop, which re-scanned the full 11M-row frame each time.
+subject_data = {sid: df for sid, df in master_aug.groupby("Subject")}
 
 def make_subject_qa_plot(subject_id, df_sub):
     fig, axes = plt.subplots(2, 2, figsize=(9, 8), sharex='row', sharey='row')
     palette = {1: "#1E6654", 2: "#CC5500", 3: "#5B7C99"}
     surfaces = ["Firm", "Foam"]
-    
+
     for j, surf in enumerate(surfaces):
         df_surf = df_sub[df_sub["Surface"] == surf]
         ax_top = axes[0, j]
         ax_bot = axes[1, j]
-        
-        # Top Panel: Cumulative Path (Faceted by Surface)
+
         for (tr, rep, vis), df_tr in df_surf.groupby(["Trial", "Rep", "Vision"], observed=True):
             ls = "-" if vis == "Open" else "--"
             c = palette[rep]
             ax_top.plot(df_tr["Time"], df_tr["CumulativePath"], linestyle=ls, color=c, alpha=0.8)
-        
+
         ax_top.set_title(f"Surface: {surf}")
         ax_top.set_xlabel("Time (s)")
         if j == 0:
             ax_top.set_ylabel("Cumulative path (cm)")
-            
-        # Bottom Panel: Stabilogram + 95% Ellipses (Faceted by Surface)
+
         for (tr, rep, vis), df_tr in df_surf.groupby(["Trial", "Rep", "Vision"], observed=True):
             ls = "-" if vis == "Open" else "--"
             c = palette[rep]
             ax_bot.plot(df_tr["COPx"], df_tr["COPy"], linestyle=ls, color=c, alpha=0.3, linewidth=0.8)
-            
+
             ell_df = ellipse_boundary_df(df_tr["COPx"], df_tr["COPy"])
             ax_bot.plot(ell_df["ex"], ell_df["ey"], linestyle=ls, color=c, alpha=0.9, linewidth=1.2)
-            
+
         ax_bot.set_title(f"Surface: {surf}")
         ax_bot.set_xlabel("COPx (cm)")
         if j == 0:
             ax_bot.set_ylabel("COPy (cm)")
-        # Fixed: Changed adjustable='datalim' to 'box' to support shared axes
         ax_bot.set_aspect("equal", adjustable="box")
-    
+
     fig.suptitle(f"Subject {subject_id} - QA Diagnostic\nTop: Cumulative Path | Bottom: Stabilogram & 95% Ellipses", fontsize=12, fontweight="bold")
     plt.tight_layout()
     return fig
 
-# Save all per-subject diagnostic PNGs
-os.makedirs("./data/BDS/output/qa_plots", exist_ok=True)
-subject_ids = master_aug["Subject"].unique()
+qa_dir = "./data/BDS/output/qa_plots"
+os.makedirs(qa_dir, exist_ok=True)
 
-for sid in subject_ids:
-    df_sub = master_aug[master_aug["Subject"] == sid]
-    fig = make_subject_qa_plot(sid, df_sub)
-    fig.savefig(f"./data/BDS/output/qa_plots/subject_{sid:03d}_QA.png", dpi=100)
-    if sid != subject_ids[0]:
+for sid, df_sub in subject_data.items():
+    out_file = f"{qa_dir}/subject_{sid:03d}_QA.png"
+    if not os.path.exists(out_file):
+        fig = make_subject_qa_plot(sid, df_sub)
+        fig.savefig(out_file, dpi=100)
         plt.close(fig)
 
-# Display Subject 1 in Quarto output
+# The two subjects we spotlight below: the first ("clean") and the last
+# ("built-in errors") subject in the sorted subject list.
+subject_ids_sorted = sorted(subject_data.keys())
+good_subject_id = subject_ids_sorted[0]
+bad_subject_id  = subject_ids_sorted[162]
+```
+:::
+
+Here is the "clean" subject:
+
+::: {.panel-tabset}
+## R (`tidyverse` & `patchwork`)
+
+```{r}
+#| label: script01-goodSubject-r
+#| fig-width: 9
+#| fig-height: 8
+
+make_subject_qa_plot(good_subject_id, subject_data[[as.character(good_subject_id)]])
+```
+
+## Python (`numpy`, `scipy` & `matplotlib`)
+
+```{python}
+#| label: script01-goodSubject-python
+#| fig-width: 9
+#| fig-height: 8
+
+make_subject_qa_plot(good_subject_id, subject_data[good_subject_id])
 plt.show()
 ```
 :::
+
+Next, let's look at the same plot, but for a subject with built in errors.
+
+::: {.panel-tabset}
+## R (`tidyverse` & `patchwork`)
+
+```{r}
+#| label: script01-badSubject-r
+#| fig-width: 9
+#| fig-height: 8
+
+make_subject_qa_plot(bad_subject_id, subject_data[[as.character(bad_subject_id)]])
+```
+
+## Python (`numpy`, `scipy` & `matplotlib`)
+
+```{python}
+#| label: script01-badSubject-python
+#| fig-width: 9
+#| fig-height: 8
+
+make_subject_qa_plot(bad_subject_id, subject_data[bad_subject_id])
+plt.show()
+```
+:::
+
+Keep in mind we started with over 11 million rows of data! There is no way a human operator can do meaningfully do quality assurance by hand when data sets get that large. However, if we build up our skills with data visualization, we can turn millions of rows and columns of data into a few meaningful graphics. 
+
 

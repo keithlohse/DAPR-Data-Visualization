@@ -18,10 +18,9 @@ website:
         file: 03-interactive-plots.qmd
       - text: "4. Animated Plots"
         file: 04-animated-plots.qmd
-  page-footer:
-    left: "The DAPR Center is supported by an NIH P50 Medical Rehabilitation Research Resource award (P50HD118603)."
-    right: "<img src='images/nichd_logo.png' alt='Logo' height='50px'>"
-        
+      - text: "5. Best Practices for Figures"
+        file: 05-figure-best-practices.qmd
+
 format:
   html:
     theme: cosmo
@@ -34,7 +33,7 @@ format:
     self-contained-math: false # Avoid embedding MathJax everywhere if not needed
 
 execute:
-  freeze: true
+  freeze: auto
   echo: true
   warning: false
   message: false

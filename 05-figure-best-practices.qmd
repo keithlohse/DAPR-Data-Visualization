@@ -1,0 +1,162 @@
+---
+title: "Best Practices for Scientific Figures"
+subtitle: "Preparing Figures for Publication and Presentation"
+---
+
+# General Principles for Scientific Figures
+
+Up to this point, our guide has focused on producing individual figures in `R` and `Python`, whether they are static plots, interactive plots, and animated plots. This final chapter steps back from any particular tool or language to cover something more fundamental - the properties that make a figure succeed or fail once it leaves your screen and becomes printed page, a slide at a conference, or an animated .gif (aside: Do you pronounce that "Giff" or "Jiff"?). These principles discussed on this page apply broadly, whether the figure came from `ggplot2`, `matplotlib`, or a microscope.
+
+Rather than invent this framework from scratch, we build this chapter around a widely-cited, freely available reference: [Rougier, Droettboom, and Bourne's "Ten Simple Rules for Better Figures"](https://doi.org/10.1371/journal.pcbi.1003833) (*PLOS Computational Biology*, 2014). The article is released under a CC0 public-domain dedication, so we encourage you to read it in full. We summarize its ten rules below, then go into more technical depth on four of them that come up often in practice: adapting a figure's resolution to its medium, choosing between raster and vector formats, assembling multi-panel figures that combine photographs and data plots, and using color responsibly.
+
+## The Ten Rules, in Brief
+
+1. **Know your audience.** Often you will want different attributes for a figure you use in a lab meeting versus a journal article versus a talk to the general-public.
+2. **Identify your message.** Decide what the figure needs to say before you decide how it should look. A good figure makes both the question being asked, and the answer to that question, very clear. 
+3. **Adapt the figure to its medium.** A poster, a projected slide, and a printed page have different resolution, size, and legibility requirements.
+4. **Captions are not optional.** The caption carries explanation the figure itself cannot - e.g., exact values, what a color or symbol means, or why a highlighted region matters.
+5. **Do not trust the defaults.** Every plotting library's default settings are good enough for many plot, but they probably are not the best settings for any specific plot.
+6. **Use color effectively.** There is tremendous creative appeal in making our figures as colorful as possible, but every color choice should have a reason; if it doesn't, use black or gray instead. Color should also generally backed up by other aesthetics (e.g., very lines but color *and* dash, points by color *and* shape) to ensure readability.
+7. **Do not mislead the reader.** Many features of plot exist, despite a wide body of evidence showing they actually make plots harder to understand or even misleading (e.g., truncated axes, pie charts, and 3-D charts are generally bad practices that should be avoided).
+8. **Avoid "chartjunk."** Unnecessary gridlines, decorative colors, and redundant labels crowd out the actual signal.
+9. **Message trumps beauty.** A figure's top priorities are to be correct and legible, any attractive/aesthetic consideration should come second.
+10. **Get the right tool.** Although it is efficient to have everything in a single pipieline, the software you used to analyze your data does not have to be the software you use to illustrate it.
+
+The next four sections expand on Rules 3, 6, and 10, since resolution, color, and tool choice are where we see the common but avoidable mistakes.
+
+## Screen Resolution vs. Print Resolution
+
+DPI (dots per inch) is not a property of a file on its own - it is only meaningful once you also know the physical size at which the file will be printed or displayed. A 3,000-pixel-wide image is 1,000 DPI at a 3-inch width and only 300 DPI at a 10-inch width. This is why a figure that looks perfectly sharp on a laptop screen (which usually renders around 72 pixels per inch) can turn blurry once it is actually printed. As a result, journals typically require 300-1200 DPI depending on content type. As a rule of thumb: photographs and other continuous-tone images are generally acceptable at 300 DPI, but line art - graphs, diagrams, anything with fine lines or small text - will be better at 600 DPI or larger, because sharp edges "alias" (i.e., turn jagged) at lower resolutions in a way smooth photographic tones do not.
+
+The most common way people get this wrong is exporting a figure at its on-screen size (which defaults to something like 72-96 DPI) and never revisiting it, or trying to fix a low-resolution image by increasing its reported DPI after the fact. Neither adds real detail - the only reliable fix is to re-export from the original plotting code at the correct physical size and DPI together.
+
+This is also why it helps to think you audience in advance of making a figure. For instance, you might often have "quick and dirty" figures that you churn out during a project (e.g., our quality assurance figures for individual subjects from `Section 01`) and these will be just fine at 72 DPI. But once you start to build figures you want in your publication, you will want to increase the resoultion at which you are exporting your figures.
+
+::: {.panel-tabset}
+## R (`ggplot2`)
+
+```{r}
+#| eval: false
+# ggsave() lets you set physical size AND resolution together -- always set
+# both, since DPI alone is meaningless without a physical size to pair it with.
+ggsave("figure1.png", plot = p, width = 6, height = 4, units = "in", dpi = 300)
+
+# Line art (plots with fine ticks/text) typically needs a higher DPI than
+# photographs. When in doubt, 600 DPI is a safer default for a data figure.
+ggsave("figure1_lineart.tiff", plot = p, width = 6, height = 4, units = "in", dpi = 600)
+```
+
+## Python (`matplotlib`)
+
+```{python}
+#| eval: false
+# figsize (inches) sets the physical size; dpi determines how many pixels
+# that becomes. Always set both together, same logic as ggsave() above.
+fig.savefig("figure1.png", dpi=300, bbox_inches="tight")
+
+# Line art wants a higher DPI than photographs.
+fig.savefig("figure1_lineart.tiff", dpi=600, bbox_inches="tight")
+```
+:::
+
+## Raster vs. Vector Graphics
+
+Compute graphics fall broadly into one of two types: raster images or vector images. **Raster images** are built from a fixed grid of pixels. If you enlarge the image past its original resolution, it visibly start to pixelate, because there is no more information to draw on and it has to extrapolate/interpolate the new pixels. In constract, **vector images** are built from mathematical descriptions of lines, curves, and shapes instead of pixels, so they can be scaled to any size - as big as a poster or as small a thumbnail - without any loss of sharpness.
+
+For data figures specifically, this maps cleanly onto content type. Anything that is fundamentally geometric - line plots, bar charts, scatter plots, diagrams, schematics - is often best exported as a vector format (PDF, SVG, or EPS) whenever the destination allows it, because vector images sidestep the entire DPI conversation (i.e., a vector figure is sharp at whatever size). Raster images, however, remain necessary for photographs, micrographs, and anything else with continuous tonal gradation, because there is no vector geometry (or at least no simple vectorization!) to describe these complexities. Many journals now explicitly prefer PDF/EPS for line-art submissions and TIFF for photographic content, for exactly this reason. However, be sure to check your journals instructions for authors to get their specific requirements for image formats and resolutions.
+
+::: {.panel-tabset}
+## R (`ggplot2`)
+
+```{r}
+#| eval: false
+# Vector formats are resolution-independent -- no DPI setting needed.
+ggsave("figure1.pdf", plot = p, width = 6, height = 4, units = "in")
+ggsave("figure1.svg", plot = p, width = 6, height = 4, units = "in")
+```
+
+## Python (`matplotlib`)
+
+```{python}
+#| eval: false
+# matplotlib infers the output format from the file extension.
+fig.savefig("figure1.pdf", bbox_inches="tight")
+fig.savefig("figure1.svg", bbox_inches="tight")
+```
+:::
+
+One caveat: a "vector" figure that contains an embedded raster element (a photo overlaid with vector annotations, for instance) still needs that raster component checked at the correct DPI for its final print size - wrapping something in a vector container does not retroactively fix its resolution.
+
+## Assembling Multi-Panel Figures with Photos and Data
+
+A common situation in rehabilitation and movement science is combining a data figure (a stabilogram, a time series) with a photograph - maybe the experimental setup, a piece of equipment, or a histology slide. Adobe Illustrator handles this well as does the open-source program [Inkscape](https://inkscape.org/). Regardless of the software or specific image types, there are some common principles to guide the workflow:
+
+1. **Export each panel individually**, at its intended final size, in the appropriate format - vector (PDF/SVG) for plots, high-resolution raster (TIFF) for photos.
+2. **Do photo editing first, separately.** Crop, adjust brightness/contrast, and retouch photographs in a raster editor (GIMP or Photoshop) *before* bringing them into the panel layout - many journals prohibit digital manipulation of photographic data after the fact, so it is best handled once, up front, and documented.
+3. **Import everything into one vector document.** Bring both the vector plots and the prepared raster photos into Inkscape or Illustrator as separate objects.
+4. **Align panels deliberately**, try using the editor's alignment tools rather than dragging by eye alone. (Often it is only too late that I realize my panels are slightly "off" with one panel several pixels above or below its neighbor in the final print figure.).
+5. **Keep typography consistent across panels.** A figure combining a `ggplot2` panel, a `matplotlib` panel, and a photo's caption text in three different fonts and sizes reads as unpolished even if every individual panel is well made; pick one font family and one or two font sizes for the whole composite.
+6. **Add a label to each panel** so the caption and in-text references can point to specific panels unambiguously. Journals may differ in their required format (e.g. requiring uppercase letter, lowercase letters, or Roman numerals). 
+7. **Export the assembled composite once**, at the destination's final specifications, rather than re-exporting individual panels repeatedly and re-assembling.
+
+If you find yourself doing this often, the [Scientific Inkscape](https://github.com/burghoff/Scientific-Inkscape) extension set is worth exploring - it adds tools specifically aimed at this workflow, including a *Scaler* that resizes an imported plot without distorting its text and tick marks, and a *Homogenizer* that enforces uniform fonts and stroke widths across panels pulled in from different source figures (i.e., the "three fonts in one figure" problem explained in step 5 above).
+
+## Color: Rule 6 in Depth
+
+Color is one of the easiest places to unintentionally distort or obscure your own data, so it is worth addressing deliberately rather than accepting whatever a plotting library defaults to. *Colormaps* fall into three functional categories, and picking the wrong category for your data type is a common, avoidable mistake:
+
+- **Sequential** -- one color varying from light to dark (or vice versa), for quantitative data that runs low to high (e.g., path length, age).
+- **Diverging** -- two colors meeting at a neutral midpoint, for data with a meaningful center to deviate from (e.g., a difference score, correlation coefficients going in opposite directions).
+- **Qualitative** -- visually distinct, unordered colors, for categorical/grouping variables (e.g., `Vision`, `Surface` in our examples).
+
+The simple rainbow (or "jet") colormap - still a default in many plotting libraries - fails on both counts at once: it is qualitative-looking but frequently applied to sequential data, and it is not perceptually uniform, meaning equal steps in the underlying data do not produce equal steps in perceived color. Crameri, Shephard, and Heron's ["The misuse of colour in science communication"](https://doi.org/10.1038/s41467-020-19160-7) (*Nature Communications*, 2020) quantifies this distortion directly: an uneven color gradient can visually misrepresent the total data range and it can obscure real structure in the data behind arbitrary color banding. Their recommended alternative is a *perceptually uniform* sequential palette - **viridis** (and its relatives, magma, plasma, cividis) is the most widely adopted example, originally built for `matplotlib` and now available as a default or package option in nearly every plotting environment.
+
+Color vision deficiency is the second major consideration, and it affects a meaningful fraction of any audience - roughly 8% of men have red-green color blindness, which makes red/green the single most common accidental pairing to avoid. For categorical data, the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) (popularized by Bang Wong's 2011 Nature Methods piece, ["Points of view: Color blindness"](https://doi.org/10.1038/nmeth.1618)) remains distinguishable across all three common types of color vision deficiency and has become close to a de facto standard for qualitative scientific figures.
+
+::: {.panel-tabset}
+## R (`ggplot2`)
+
+```{r}
+#| eval: false
+# Sequential/continuous data: viridis is perceptually uniform and
+# colorblind-safe, and ships as a built-in ggplot2 scale.
+ggplot(DATA, aes(x = COPx, y = COPy, color = Time)) +
+  geom_point() +
+  scale_color_viridis_c()
+
+# Categorical data: the Okabe-Ito palette, specified directly by hex code.
+okabe_ito <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+               "#0072B2", "#D55E00", "#CC79A7", "#000000")
+
+ggplot(DATA, aes(x = Surface, y = PathLength_Total, color = Vision)) +
+  geom_point() +
+  scale_color_manual(values = okabe_ito)
+```
+
+## Python (`matplotlib`)
+
+```{python}
+#| eval: false
+# Sequential/continuous data: viridis is built into matplotlib directly.
+ax.scatter(DATA["COPx"], DATA["COPy"], c=DATA["Time"], cmap="viridis")
+
+# Categorical data: the Okabe-Ito palette, specified directly by hex code.
+okabe_ito = ["#E69F00", "#56B4E9", "#009E73", "#F0E442",
+             "#0072B2", "#D55E00", "#CC79A7", "#000000"]
+
+sns.scatterplot(data=DATA, x="Surface", y="PathLength_Total",
+                 hue="Vision", palette=okabe_ito)
+```
+:::
+
+As with the rest of Rule 6: if a color choice isn't doing real work - distinguishing groups, encoding a value, drawing the eye to something specific - it is usually better left out, in favor of black or gray. Additionally, it is generally good practice to "back up" your color choices with another aesthetic feature. For instance, if you have **lines** that differ by color, consider adding dashes to them as well. Similarly, if you have **points** that differ by color, it is often good to give them different shapes as well. This not only helps with accessibility - overcoming color vision deficiency - but generally makes your plots more interpretable. For instance, when making a plot for a talk, always consider someone stuck in the back row of your audience, can they cleanly see everything that is going on in your plot? 
+
+
+
+## Further Reading
+
+- Rougier, N.P., Droettboom, M., & Bourne, P.E. (2014). [Ten Simple Rules for Better Figures](https://doi.org/10.1371/journal.pcbi.1003833). *PLOS Computational Biology*, 10(9), e1003833. (Open access, CC0.)
+- Crameri, F., Shephard, G.E., & Heron, P.J. (2020). [The misuse of colour in science communication](https://doi.org/10.1038/s41467-020-19160-7). *Nature Communications*, 11, 5444.
+- Wong, B. (2011). [Points of view: Color blindness](https://doi.org/10.1038/nmeth.1618). *Nature Methods*, 8, 441.
+- Okabe, M., & Ito, K. (2008). [Color Universal Design (CUD)](https://jfly.uni-koeln.de/color/).
+- [Scientific Inkscape](https://github.com/burghoff/Scientific-Inkscape) -- Inkscape extensions for figure resizing and multi-panel assembly.
