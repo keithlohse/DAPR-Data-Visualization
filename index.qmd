@@ -1,7 +1,7 @@
 ---
 title: "DAPR Data Management and Visualization Pipeline"
 subtitle: "A Parallel Guide in R and Python"
-author: "Keith R. Lohse, PhD, PStat"
+author: "Keith R. Lohse, PhD, PStat; James Finley, PhD; Duncan T. Tulimieri, PhD; Sook-Lei Liew, PhD, OTR/L"
 date: "2026-07-22"
 ---
 
