@@ -4,7 +4,13 @@ version = "0.1.0"
 description = "Data visualization for DAPR"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastparquet>=2026.9.0",
+    "matplotlib>=3.11.2",
+    "pyarrow>=26.0.0",
+    "scipy>=1.18.1",
+    "seaborn>=0.13.2",
+]
 
 [dependency-groups]
 dev = [
