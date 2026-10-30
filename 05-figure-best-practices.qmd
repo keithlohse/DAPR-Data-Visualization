@@ -138,7 +138,7 @@ ggplot(DATA, aes(x = Surface, y = PathLength_Total, color = Vision)) +
 ```{python}
 #| eval: false
 # Sequential/continuous data: viridis is built into matplotlib directly.
-ax.scatter(DATA["COPx"], DATA["COPy"], c=DATA["Time"], cmap="viridis")
+ax.scatter(data["COPx"], data["COPy"], c=data["Time"], cmap="viridis")
 
 # Categorical data: the Okabe-Ito palette, specified directly by hex code.
 okabe_ito = ["#E69F00", "#56B4E9", "#009E73", "#F0E442",
