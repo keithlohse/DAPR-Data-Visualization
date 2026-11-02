@@ -21,6 +21,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ipynb_checkpoints/
+.ruff_cache/
 
 # Operating System Files
 .DS_Store
